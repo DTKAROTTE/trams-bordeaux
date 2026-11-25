@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Trams de Bordeaux 3D</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@100..125,400..800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:#0d0f12;color:#eef0f3;font:15px/1.45 Archivo,system-ui,sans-serif}
+#map{position:fixed;inset:0}
+.panel{position:fixed;z-index:10;top:14px;left:14px;width:300px;max-width:calc(100vw - 28px);background:rgba(16,18,22,.9);backdrop-filter:blur(8px);border:1px solid #262a31;border-radius:14px;padding:16px 16px 12px;box-shadow:0 10px 30px rgba(0,0,0,.45)}
+h1{margin:0 0 2px;font-size:22px;line-height:1.1;font-stretch:112%;font-weight:800}
+.sub{color:#9aa1ab;font-size:13px;margin:0 0 12px}
+.big{font-size:40px;font-weight:800;font-stretch:112%;line-height:1}
+.big small{font-size:14px;font-weight:500;color:#9aa1ab;margin-left:6px}
+.lines{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:12px 0 10px}
+.chip{display:flex;align-items:center;gap:8px;min-height:40px;padding:4px 8px;border-radius:10px;border:1px solid #2b3038;background:#171a1f;color:inherit;font:inherit;cursor:pointer;text-align:left}
+.chip.off{opacity:.35}
+.chip:focus-visible,.btn:focus-visible{outline:2px solid #fff;outline-offset:1px}
+.dot{flex:none;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:13px;color:#fff}
+.chip b{font-weight:700;font-variant-numeric:tabular-nums}
+.chip.wide{grid-column:1/-1}
+.pill{flex:none;background:#3b8fe0;border-radius:6px;padding:4px 8px;font-weight:800;font-size:12px;line-height:1;color:#fff}
+.chip .lbl{color:#9aa1ab;font-size:13px;margin-left:auto}
+.legend{display:flex;gap:14px;font-size:12px;color:#9aa1ab;align-items:center;flex-wrap:wrap}
+.legend i{display:inline-block;width:16px;height:9px;border-radius:2px;vertical-align:0;margin-right:5px;background:#ddd}
+.legend i.es{opacity:.45}
+.opt{display:flex;gap:8px;align-items:flex-start;font-size:12px;color:#9aa1ab;margin-top:8px;cursor:pointer}
+.opt input{margin:1px 0 0;width:16px;height:16px;accent-color:#fff}
+.row{display:flex;gap:6px;margin-top:10px}
+.btn{flex:1;min-height:36px;border-radius:9px;border:1px solid #2b3038;background:#171a1f;color:inherit;font:600 13px Archivo,sans-serif;cursor:pointer}
+.status{font-size:12px;color:#9aa1ab;margin-top:8px}
+.status.err{color:#ff8a8a}
+.maplibregl-popup-content{background:#171a1f;color:#eef0f3;font:14px/1.45 Archivo,sans-serif;padding:12px 14px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.maplibregl-popup-tip{border-top-color:#171a1f!important;border-bottom-color:#171a1f!important}
+.maplibregl-popup-close-button{color:#9aa1ab;font-size:18px;padding:2px 8px}
+.pop h3{margin:0 18px 4px 0;font-size:16px}
+.pop .m{color:#9aa1ab;font-size:13px}
+.maplibregl-ctrl-attrib{background:rgba(16,18,22,.75)!important;color:#9aa1ab}
+.maplibregl-ctrl-attrib a{color:#c9cdd3}
+#toggle{display:none}
+.search{position:relative;margin:0 0 4px}
+.search input{width:100%;min-height:42px;border-radius:10px;border:1px solid #2b3038;background:#0f1216;color:inherit;font:16px Archivo,sans-serif;padding:8px 12px}
+.search input:focus{outline:2px solid #fff;outline-offset:0}
+.res{list-style:none;margin:4px 0 0;padding:4px;position:absolute;left:0;right:0;top:100%;z-index:20;background:#171a1f;border:1px solid #2b3038;border-radius:10px;max-height:min(360px,50vh);overflow:auto;box-shadow:0 12px 30px rgba(0,0,0,.5)}
+.res:empty{display:none}
+.res button{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:6px 8px;border:0;border-radius:8px;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.res button:hover,.res button.on{background:#232830}
+.res .t{display:block;font-weight:700}
+.res .s{display:block;color:#9aa1ab;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.res .ico{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:12px;color:#fff}
+.res .ico.stop{background:#0d0f12;border:2px solid #e8eaed;width:16px;height:16px;margin:0 6px}
+.res .ico.bus{border-radius:6px;width:auto;min-width:28px;padding:0 5px;height:22px}
+.res .none{padding:10px;color:#9aa1ab;font-size:13px}
+.blines{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.bchip{display:flex;align-items:center;gap:6px;max-width:100%;border:1px solid #2b3038;background:#171a1f;border-radius:9px;padding:3px 3px 3px 6px}
+.bchip .go{display:flex;align-items:center;gap:6px;min-height:32px;background:none;border:0;color:inherit;font:13px Archivo,sans-serif;cursor:pointer;min-width:0}
+.bchip .go span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.bchip .x{width:32px;height:32px;border:0;border-radius:7px;background:none;color:#9aa1ab;font-size:18px;cursor:pointer}
+.bchip .x:hover{background:#232830;color:#fff}
+.dep{list-style:none;margin:6px 0 0;padding:0;min-width:230px}
+.dep li{display:flex;align-items:center;gap:8px;padding:4px 0;border-top:1px solid #262a31}
+.dep .d{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+.dep .w{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dep .w.th{color:#9aa1ab;font-weight:500}
+.dep .b{flex:none;min-width:24px;height:22px;border-radius:11px;display:grid;place-items:center;padding:0 6px;font-weight:800;font-size:12px;color:#fff}
+.dep .b.bus{border-radius:5px}
+@media(max-width:600px){
+ .panel{top:auto;bottom:10px;left:10px;right:10px;width:auto;padding:12px}
+ .big{font-size:30px}
+ .panel.min .hide{display:none}
+ #toggle{display:block;position:absolute;right:10px;top:8px;background:none;border:0;color:#9aa1ab;font:inherit;min-height:36px;cursor:pointer}
+}
+</style>
+</head>
+<body>
+<div id="map"></div>
+<div class="panel" id="panel">
+ <button id="toggle" type="button">Réduire</button>
+ <h1>Trams de Bordeaux</h1>
+ <p class="sub">Trams et bus en 3D à leur position GPS, complétés par les horaires temps réel TBM</p>
+ <div class="search" role="search">
+  <input id="q" type="search" placeholder="Ligne ou arrêt (ex. A, 15, Quinconces)" autocomplete="off" aria-label="Rechercher une ligne ou un arrêt" aria-controls="res">
+  <ul class="res" id="res" role="listbox"></ul>
+ </div>
+ <div class="big" id="total">…<small>trams en ligne</small></div>
+ <div class="hide">
+  <div class="lines" id="lines"></div>
+  <div class="blines" id="blines"></div>
+  <div class="lines"><button type="button" class="chip wide" id="cbus" aria-pressed="true"><span class="pill">Bus</span><b id="nbus">0</b><span class="lbl" id="lbus">affichés</span></button></div>
+  <div class="legend"><span><i></i>Position GPS</span><span><i class="es"></i>Estimée (horaires)</span></div>
+  <label class="opt"><input type="checkbox" id="busnet"> Afficher tout le réseau de bus (tracés)</label>
+  <label class="opt"><input type="checkbox" id="theo"> Afficher aussi les courses théoriques (sans signal, souvent fantômes)</label>
+  <div class="row"><button class="btn" id="view" type="button">Vue à plat</button><button class="btn" id="home" type="button">Recentrer</button></div>
+ </div>
+ <div class="status" id="status">Chargement de la carte…</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/maplibre-gl/4.7.1/maplibre-gl.min.js"></script>
+<script>
+{
+const KEY='opendata-bordeaux-metropole-flux-gtfs-rt';
+const SIRI='https://bdx.mecatran.com/utw/ws/siri/2.0/bordeaux/';
+const DH='https://datahub.bordeaux-metropole.fr/api/explore/v2.1/catalog/datasets/';
+const GPS_URL='https://bdx.mecatran.com/utw/ws/gtfsfeed/vehicles/bordeaux?apiKey='+KEY;
+const LINES=[
+ {id:'59',name:'A',color:'#a0329a'},
+ {id:'60',name:'B',color:'#e4002b'},
+ {id:'61',name:'C',color:'#e6007e'},
+ {id:'62',name:'D',color:'#9273c4'},
+ {id:'163',name:'E',color:'#00a6a6'},
+ {id:'164',name:'F',color:'#f39200'}
+];
+const LBY={};LINES.forEach(l=>{LBY[l.id]=l;l.on=true;l.count=0});
+const REFRESH=30000,GPS_EVERY=10000,STALE=180;
+const HOME={center:[-0.5745,44.8418],zoom:13.6,pitch:58,bearing:-20};
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const lineIdOf=ref=>{const m=/Line:(\d+):/.exec(ref||'');return m?m[1]:null};
+const tripOf=ref=>{const m=/ServiceJourney:(.*):LOC/.exec(ref||'');return m?m[1]:ref};
+const fmt=t=>new Date(t).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
+const st=document.getElementById('status');
+
+// --- Géométrie : coordonnées planes approx. (x=lon*cos(lat), y=lat)
+const KX=Math.cos(44.84*Math.PI/180);
+const P=(lat,lon)=>[lon*KX,lat];
+const dist=(a,b)=>Math.hypot(a[0]-b[0],a[1]-b[1]);
+const MLAT=111320,MLON=111320*KX;
+const headingOf=(a,b)=>(Math.atan2((b[1]-a[1])*MLON,(b[0]-a[0])*MLAT)*180/Math.PI+360)%360; // a,b=[lat,lon]
+const angDiff=(a,b)=>((b-a+540)%360)-180;
+
+let stops={},shapes=[];const lineInfo={},stopGroups=new Map();
+const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
+const projCache=new Map(),segCache=new Map();
+function projectPt(p,s){
+ let best={err:1e9,d:0,i:0};
+ for(let i=0;i<s.pts.length-1;i++){
+  const a=s.pts[i],b=s.pts[i+1],dx=b[0]-a[0],dy=b[1]-a[1],L2=dx*dx+dy*dy;
+  let t=L2?((p[0]-a[0])*dx+(p[1]-a[1])*dy)/L2:0;t=Math.max(0,Math.min(1,t));
+  const e=Math.hypot(a[0]+t*dx-p[0],a[1]+t*dy-p[1]);
+  if(e<best.err)best={err:e,d:s.cum[i]+t*Math.sqrt(L2),i};
+ }
+ return best;
+}
+function project(ref,si){const k=ref+'|'+si;if(!projCache.has(k))projCache.set(k,projectPt(stops[ref].xy,shapes[si]));return projCache.get(k)}
+function pointAt(s,d){
+ let lo=0,hi=s.cum.length-1;
+ while(hi-lo>1){const m=(lo+hi)>>1;if(s.cum[m]<=d)lo=m;else hi=m}
+ const seg=s.cum[hi]-s.cum[lo]||1,t=Math.max(0,Math.min(1,(d-s.cum[lo])/seg));
+ const a=s.ll[lo],b=s.ll[hi];return [a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t];
+}
+function segment(line,A,B){
+ const k=A+'>'+B;if(segCache.has(k))return segCache.get(k);
+ const a=stops[A],b=stops[B];let res=null;
+ if(a&&b){
+  const straight=dist(a.xy,b.xy),TOL=0.0007;let best=null;
+  shapes.forEach((s,si)=>{
+   const pa=project(A,si);if(pa.err>TOL)return;
+   const pb=project(B,si);if(pb.err>TOL||pb.d<=pa.d)return;
+   const len=pb.d-pa.d;if(len>straight*2.5+0.002)return;
+   const score=pa.err+pb.err+(s.line===line?0:0.0002);
+   if(!best||score<best.score)best={score,si,d0:pa.d,len};
+  });
+  res=best?{kind:'shape',...best}:{kind:'line',a:[a.lat,a.lon],b:[b.lat,b.lon]};
+ }
+ segCache.set(k,res);return res;
+}
+function posOnSegment(line,A,B,f){
+ const sg=segment(line,A,B);if(!sg)return null;
+ if(sg.kind==='shape'){const s=shapes[sg.si];return {ll:pointAt(s,sg.d0+sg.len*f),h:headingOf(pointAt(s,sg.d0+sg.len*f-0.00005),pointAt(s,sg.d0+sg.len*f+0.00005))}}
+ return {ll:[sg.a[0]+(sg.b[0]-sg.a[0])*f,sg.a[1]+(sg.b[1]-sg.a[1])*f],h:headingOf(sg.a,sg.b)};
+}
+// --- Carte 3D
+const map=new maplibregl.Map({container:'map',style:'https://tiles.openfreemap.org/styles/dark',...HOME,antialias:true,maxPitch:75,attributionControl:false});
+map.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:'Données <a href="https://transport.data.gouv.fr/datasets/offres-de-services-bus-tram-et-scolaire-au-format-gtfs-gtfs-rt-siri-lite-1">TBM / Bordeaux Métropole</a>'}));
+map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'top-right');
+const EMPTY={type:'FeatureCollection',features:[]};
+
+function addLayers(){
+ // Bâtiments en relief
+ map.addLayer({id:'bld3d',type:'fill-extrusion',source:'openmaptiles','source-layer':'building',minzoom:13,
+  paint:{'fill-extrusion-color':'#1f2329','fill-extrusion-height':['coalesce',['get','render_height'],8],'fill-extrusion-base':['coalesce',['get','render_min_height'],0],'fill-extrusion-opacity':.85}});
+ map.addSource('busnet',{type:'geojson',data:EMPTY});
+ map.addLayer({id:'busnet',type:'line',source:'busnet',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#5b8db8','line-width':['interpolate',['linear'],['zoom'],11,.8,16,2.5],'line-opacity':.35}});
+ map.addSource('buslines',{type:'geojson',data:EMPTY});
+ map.addLayer({id:'buslines-glow',type:'line',source:'buslines',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':['get','c'],'line-width':['interpolate',['linear'],['zoom'],11,3,16,9],'line-opacity':.18,'line-blur':4}});
+ map.addLayer({id:'buslines',type:'line',source:'buslines',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':['get','c'],'line-width':['interpolate',['linear'],['zoom'],11,1.3,16,3.5],'line-opacity':.8,'line-dasharray':[2,1]}});
+ map.addSource('busstops',{type:'geojson',data:EMPTY});
+ map.addLayer({id:'busstops',type:'circle',source:'busstops',minzoom:12.5,paint:{'circle-radius':['interpolate',['linear'],['zoom'],12,1.5,16,4],'circle-color':'#0d0f12','circle-stroke-color':['get','c'],'circle-stroke-width':1.5}});
+ map.addLayer({id:'busstop-names',type:'symbol',source:'busstops',minzoom:15.5,layout:{'text-field':['get','n'],'text-font':['Noto Sans Regular'],'text-size':11,'text-offset':[0,1],'text-anchor':'top'},paint:{'text-color':'#c9cdd3','text-halo-color':'#0d0f12','text-halo-width':1.2}});
+ map.addSource('lines',{type:'geojson',data:EMPTY});
+ map.addLayer({id:'lines-glow',type:'line',source:'lines',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':['get','c'],'line-width':['interpolate',['linear'],['zoom'],11,3,16,10],'line-opacity':.18,'line-blur':4}});
+ map.addLayer({id:'lines',type:'line',source:'lines',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':['get','c'],'line-width':['interpolate',['linear'],['zoom'],11,1.5,16,4],'line-opacity':.75}});
+ map.addSource('stops',{type:'geojson',data:EMPTY});
+ map.addLayer({id:'stops',type:'circle',source:'stops',paint:{'circle-radius':['interpolate',['linear'],['zoom'],11,1.5,16,4],'circle-color':'#0d0f12','circle-stroke-color':'#e8eaed','circle-stroke-width':1}});
+ map.addLayer({id:'stop-names',type:'symbol',source:'stops',minzoom:15,layout:{'text-field':['get','n'],'text-font':['Noto Sans Regular'],'text-size':11,'text-offset':[0,1],'text-anchor':'top'},paint:{'text-color':'#c9cdd3','text-halo-color':'#0d0f12','text-halo-width':1.2}});
+ map.addSource('trams',{type:'geojson',data:EMPTY});
+ map.addSource('trams-es',{type:'geojson',data:EMPTY});
+ const ext={'fill-extrusion-color':['get','c'],'fill-extrusion-height':['get','h'],'fill-extrusion-base':['get','b'],'fill-extrusion-vertical-gradient':true};
+ map.addLayer({id:'trams',type:'fill-extrusion',source:'trams',paint:{...ext,'fill-extrusion-opacity':1}});
+ map.addLayer({id:'trams-es',type:'fill-extrusion',source:'trams-es',paint:{...ext,'fill-extrusion-opacity':.5}});
+ map.addSource('bus',{type:'geojson',data:EMPTY});
+ map.addLayer({id:'bus',type:'fill-extrusion',source:'bus',paint:{...ext,'fill-extrusion-opacity':1}});
+ map.addSource('bus-labels',{type:'geojson',data:EMPTY});
+ map.addLayer({id:'bus-labels',type:'symbol',source:'bus-labels',minzoom:13.5,layout:{'text-field':['get','t'],'text-font':['Noto Sans Regular'],'text-size':11,'text-offset':[0,-1.5],'text-allow-overlap':true,'text-ignore-placement':true},paint:{'text-color':'#fff','text-halo-color':['get','c'],'text-halo-width':2.5}});
+ map.addSource('labels',{type:'geojson',data:EMPTY});
+ map.addLayer({id:'labels',type:'symbol',source:'labels',layout:{'text-field':['get','t'],'text-font':['Noto Sans Regular'],'text-size':12,'text-offset':[0,-1.6],'text-allow-overlap':true,'text-ignore-placement':true},paint:{'text-color':'#fff','text-halo-color':['get','c'],'text-halo-width':3}});
+}
+
+// --- Données statiques : arrêts et tracés
+async function loadStatic(){
+ const tramIds=new Set(LINES.map(l=>'bordeaux:Line:'+l.id+':LOC'));
+ const [sp,geo,ld]=await Promise.all([
+  fetch(SIRI+'stoppoints-discovery.json?AccountKey='+KEY).then(r=>r.json()),
+  fetch(DH+'sv_chem_l/exports/geojson?where='+encodeURIComponent('vehicule="TRAM" and principal="True"')+'&select=rs_sv_ligne_a,geo_shape').then(r=>r.json()).catch(()=>({features:[]})),
+  fetch(SIRI+'lines-discovery.json?AccountKey='+KEY).then(r=>r.json()).catch(()=>null)
+ ]);
+ for(const a of (ld&&ld.Siri&&ld.Siri.LinesDelivery&&ld.Siri.LinesDelivery.AnnotatedLineRef)||[]){
+  const m=/Line:([^:]+):LOC/.exec(a.LineRef&&a.LineRef.value||'');if(!m)continue;
+  lineInfo[m[1]]={code:(a.LineCode&&a.LineCode.value)||m[1].replace(/^0+/,''),name:(a.LineName&&a.LineName[0]&&a.LineName[0].value)||''};
+ }
+ for(const s of sp.Siri.StopPointsDelivery.AnnotatedStopPointRef||[]){
+  const ref=s.StopPointRef&&s.StopPointRef.value,loc=s.Location;if(!ref||!loc)continue;
+  const lines=(s.Lines||[]).map(x=>x.value||x);
+  stops[ref]={lat:+loc.latitude,lon:+loc.longitude,name:(s.StopName&&s.StopName.value)||ref,tram:lines.some(l=>tramIds.has(l)),xy:P(+loc.latitude,+loc.longitude),
+   lines:lines.map(l=>{const m=/Line:([^:]+):/.exec(l);return m?m[1]:null}).filter(Boolean),area:(s.StopAreaRef&&s.StopAreaRef.value)||ref};
+ }
+ // Regroupement des quais par zone d'arrêt (pour la recherche et les prochains passages)
+ const G=new Map();
+ for(const [ref,s] of Object.entries(stops)){
+  let g=G.get(s.area);if(!g){g={key:s.area,name:s.name,refs:[],lat:0,lon:0,lines:new Set()};G.set(s.area,g)}
+  g.refs.push(ref);g.lat+=s.lat;g.lon+=s.lon;s.lines.forEach(l=>g.lines.add(l));s.group=s.area;
+ }
+ for(const g of G.values()){g.lat/=g.refs.length;g.lon/=g.refs.length;g.n=norm(g.name);g.tram=[...g.lines].some(l=>LBY[l]);stopGroups.set(g.key,g)}
+ for(const f of geo.features||[]){
+  const g=f.geometry;if(!g)continue;
+  for(const c of (g.type==='MultiLineString'?g.coordinates:[g.coordinates])){
+   const ll=c.map(([lon,lat])=>[lat,lon]),pts=ll.map(([la,lo])=>P(la,lo)),cum=[0];
+   for(let i=1;i<pts.length;i++)cum.push(cum[i-1]+dist(pts[i-1],pts[i]));
+   shapes.push({line:String(f.properties.rs_sv_ligne_a),ll,pts,cum});
+  }
+ }
+ // Position des stations le long de chaque tracé (pour arrêter les rames aux stations)
+ const tramStops=Object.values(stops).filter(s=>s.tram);
+ for(const s of shapes){s.stopsD=[];for(const sp of tramStops){const r=projectPt(sp.xy,s);if(r.err<25/MLAT)s.stopsD.push(r.d)}s.stopsD.sort((x,y)=>x-y)}
+ drawStatic();
+}
+function drawStatic(){
+ map.getSource('lines').setData({type:'FeatureCollection',features:shapes.filter(s=>LBY[s.line]&&LBY[s.line].on).map(s=>({type:'Feature',properties:{c:LBY[s.line].color},geometry:{type:'LineString',coordinates:s.ll.map(([a,b])=>[b,a])}}))});
+ const seen=new Set(),f=[];
+ for(const s of Object.values(stops)){
+  if(!s.tram)continue;const k=s.name+Math.round(s.lat*500)+Math.round(s.lon*500);if(seen.has(k))continue;seen.add(k);
+  f.push({type:'Feature',properties:{n:s.name,g:s.group},geometry:{type:'Point',coordinates:[s.lon,s.lat]}});
+ }
+ map.getSource('stops').setData({type:'FeatureCollection',features:f});
+}
+
+// --- Horaires temps réel (SIRI)
+let journeys=[];const byTrip=new Map();
+async function fetchLive(){
+ const reqs=[];
+ for(const l of LINES)for(const dir of ['0','1'])
+  reqs.push(fetch(SIRI+'estimated-timetable.json?AccountKey='+KEY+'&LineRef=bordeaux:Line:'+l.id+':LOC&DirectionRef='+dir).then(r=>r.json()).catch(()=>null));
+ const res=await Promise.all(reqs);let ok=0;const next=[];
+ for(const j of res){
+  if(!j||!j.Siri)continue;ok++;
+  const del=(j.Siri.ServiceDelivery.EstimatedTimetableDelivery||[])[0];
+  for(const fr of (del&&del.EstimatedJourneyVersionFrame)||[])
+   for(const v of fr.EstimatedVehicleJourney||[]){
+    if(v.Cancellation)continue;
+    const line=lineIdOf(v.LineRef&&v.LineRef.value);if(!LBY[line])continue;
+    const calls=[];let rt=false,prev=0;
+    for(const c of (v.EstimatedCalls&&v.EstimatedCalls.EstimatedCall)||[]){
+     const ref=c.StopPointRef&&c.StopPointRef.value;if(!ref||!stops[ref])continue;
+     if(c.ExpectedArrivalTime||c.ExpectedDepartureTime)rt=true;
+     let arr=Date.parse(c.ExpectedArrivalTime||c.AimedArrivalTime||c.ExpectedDepartureTime||c.AimedDepartureTime);
+     let dep=Date.parse(c.ExpectedDepartureTime||c.AimedDepartureTime||c.ExpectedArrivalTime||c.AimedArrivalTime);
+     if(isNaN(arr)&&isNaN(dep))continue;if(isNaN(arr))arr=dep;if(isNaN(dep))dep=arr;
+     arr=Math.max(arr,prev);dep=Math.max(dep,arr);prev=dep;
+     const aimed=Date.parse(c.AimedDepartureTime||c.AimedArrivalTime);
+     calls.push({ref,arr,dep,delay:isNaN(aimed)?null:Math.round((dep-aimed)/60000)});
+    }
+    if(calls.length<2)continue;
+    const dest=v.DestinationRef&&stops[v.DestinationRef.value];
+    next.push({trip:tripOf(v.VehicleJourneyRef&&v.VehicleJourneyRef.value),line,rt,calls,dest:dest?dest.name:stops[calls[calls.length-1].ref].name});
+   }
+ }
+ if(ok===0)throw new Error('horaires injoignables');
+ journeys=next;byTrip.clear();for(const j of next)byTrip.set(j.trip,j);
+}
+
+// --- Positions GPS (GTFS-RT VehiclePositions, Protobuf décodé à la main)
+const td=new TextDecoder();
+function pb(b,s,e,cb){
+ let p=s;const dv=new DataView(b.buffer,b.byteOffset,b.byteLength);
+ const vi=()=>{let r=0,m=1,x;do{x=b[p++];r+=(x&127)*m;m*=128}while(x&128);return r};
+ while(p<e){const k=vi(),f=Math.floor(k/8),w=k&7;
+  if(w===0)cb(f,vi());else if(w===2){const l=vi();cb(f,[p,p+l]);p+=l}
+  else if(w===5){cb(f,dv.getFloat32(p,true));p+=4}else if(w===1){cb(f,dv.getFloat64(p,true));p+=8}else return}
+}
+function parseGps(b){
+ const out=[];const s=r=>td.decode(b.subarray(r[0],r[1]));
+ pb(b,0,b.length,(f,v)=>{if(f!==2)return;const e={};
+  pb(b,v[0],v[1],(f2,v2)=>{if(f2!==4)return;
+   pb(b,v2[0],v2[1],(f3,v3)=>{
+    if(f3===1)pb(b,v3[0],v3[1],(f4,v4)=>{if(f4===1)e.trip=s(v4);if(f4===5)e.route=s(v4)});
+    else if(f3===2)pb(b,v3[0],v3[1],(f4,v4)=>{if(f4===1)e.lat=v4;if(f4===2)e.lon=v4;if(f4===3)e.bearing=v4;if(f4===5)e.speed=v4});
+    else if(f3===8)pb(b,v3[0],v3[1],(f4,v4)=>{if(f4===1)e.vid=s(v4);if(f4===2)e.label=s(v4)});
+    else if(f3===5)e.ts=v3;
+   })});
+  out.push(e)});
+ return out;
+}
+// --- Suivi GPS le long du rail
+// Chaque rame est repérée par (tracé, distance le long du tracé, sens). Entre deux positions GPS,
+// elle avance sur le rail à la vitesse mesurée, s'arrête à la prochaine station tant que le GPS
+// ne l'a pas vue repartir, et ne recule jamais : les écarts sont rattrapés en douceur.
+const M=1/MLAT;                 // 1 mètre en unités de tracé
+const BLEND=3500,MAX_EXTRA=25000,TELEPORT=400*M;
+const vehicles=new Map();let gpsOk=false,gpsAt=0;
+const tangent=(s,d)=>headingOf(pointAt(s,d-5*M),pointAt(s,d+5*M));
+function railCandidates(line,lat,lon){
+ const p=P(lat,lon),out=[];
+ shapes.forEach((s,si)=>{if(s.line!==line)return;const r=projectPt(p,s);if(r.err<60*M)out.push({si,d:r.d,err:r.err})});
+ return out.sort((a,b)=>a.err-b.err);
+}
+function nextStop(s,d,dir){
+ let best=null;
+ for(const sd of s.stopsD||[]){const x=dir*(sd-d);if(x>8*M&&(best==null||x<dir*(best-d)))best=sd}
+ return best;
+}
+function railTarget(v,t){
+ const dt=Math.max(0,Math.min(t-v.fix,MAX_EXTRA));
+ let d=v.base+v.dir*v.spd*dt;
+ if(v.cap!=null)d=v.dir>0?Math.min(d,v.cap):Math.max(d,v.cap);
+ return d;
+}
+function railD(v,t){
+ let d=railTarget(v,t)+v.err0*Math.exp(-(t-v.tUpd)/BLEND);
+ if(v.shown!=null&&v.dir*(d-v.shown)<0)d=v.shown; // jamais en marche arrière
+ return d;
+}
+function vState(v,t){
+ if(v.si==null){return {ll:v.ll,h:v.h}}
+ const s=shapes[v.si],d=railD(v,t);v.shown=d;
+ return {ll:pointAt(s,d),h:(tangent(s,d)+(v.dir<0?180:0))%360};
+}
+async function fetchGps(){
+ const r=await fetch(GPS_URL);if(!r.ok)throw new Error('GPS '+r.status);
+ const list=parseGps(new Uint8Array(await r.arrayBuffer()));
+ const now=Date.now(),seen=new Set(),seenB=new Set();
+ for(const e of list){
+  if(e.lat==null||(e.ts&&now/1000-e.ts>STALE))continue;
+  if(/bus/i.test(e.vid||'')){seenB.add(e.vid);updateBus(e,now);continue}
+  if(!/tram/i.test(e.vid||''))continue;
+  const j=byTrip.get(e.trip);const line=LBY[e.route]?e.route:j&&j.line;if(!LBY[line])continue;
+  seen.add(e.vid);
+  let v=vehicles.get(e.vid);
+  const fix=e.ts?Math.min(e.ts*1000,now):now;
+  if(v&&v.fixTs===e.ts&&v.si!=null){Object.assign(v,{trip:e.trip,label:e.label,line});continue} // position inchangée
+  const shownLL=v?vState(v,now).ll:null;
+  // Choix du tracé : le plus proche dont le sens colle au cap GPS (ou au déplacement observé)
+  const cands=railCandidates(line,e.lat,e.lon);
+  let ref=e.bearing;
+  if(ref==null&&shownLL)ref=headingOf(shownLL,[e.lat,e.lon]);
+  let pick=null,dir=1;
+  for(const c of cands){
+   const h=tangent(shapes[c.si],c.d),agree=ref==null||Math.abs(angDiff(h,ref))<=90;
+   if(agree){pick=c;dir=1;break}
+   if(!pick){pick=c;dir=-1}
+  }
+  if(!pick){ // hors des tracés connus : position brute
+   vehicles.set(e.vid,{...e,line,si:null,ll:[e.lat,e.lon],h:e.bearing||0,fixTs:e.ts});continue;
+  }
+  const s=shapes[pick.si];
+  let spd=e.speed!=null?e.speed*M/1000:null; // unités de tracé par ms
+  if(spd==null&&v&&v.si===pick.si&&v.fix)spd=Math.max(0,v.dir*(pick.d-v.base))/Math.max(1,fix-v.fix);
+  if(spd==null)spd=0;
+  const nv={...(v||{}),...e,line,si:pick.si,dir,base:pick.d,fix,fixTs:e.ts,spd,cap:nextStop(s,pick.d,dir),tUpd:now};
+  // Continuité : on part de la position affichée, ramenée sur le nouveau tracé
+  let cur=null;
+  if(v&&v.si===pick.si&&v.shown!=null&&v.dir===dir)cur=v.shown;
+  else if(shownLL){const r=projectPt(P(shownLL[0],shownLL[1]),s);if(r.err<30*M)cur=r.d}
+  nv.err0=0;nv.shown=null;
+  if(cur!=null){const e0=cur-railTarget(nv,now);if(Math.abs(e0)<TELEPORT){nv.err0=e0;nv.shown=cur}}
+  vehicles.set(e.vid,nv);
+ }
+ for(const k of [...vehicles.keys()])if(!seen.has(k))vehicles.delete(k);
+ for(const k of [...buses.keys()])if(!seenB.has(k))buses.delete(k);
+ gpsOk=true;gpsAt=now;
+}
+
+// --- Bus : position GPS, glissement en douceur d'une position à la suivante
+const BUS_COLOR='#3b8fe0';
+const buses=new Map();let showBus=true;
+function busState(b,t){
+ const f=Math.min(1,(t-b.t0)/GPS_EVERY),e=f*f*(3-2*f);
+ return {ll:[b.from[0]+(b.to[0]-b.from[0])*e,b.from[1]+(b.to[1]-b.from[1])*e],h:(b.hFrom+angDiff(b.hFrom,b.hTo)*e+360)%360};
+}
+function updateBus(e,now){
+ const b=buses.get(e.vid),to=[e.lat,e.lon];
+ if(b&&b.fixTs===e.ts)return;
+ let h=e.bearing;
+ if(h==null)h=b?(dist(P(b.to[0],b.to[1]),P(to[0],to[1]))>5*M?headingOf(b.to,to):b.hTo):0;
+ if(!b){buses.set(e.vid,{...e,fixTs:e.ts,from:to,to,hFrom:h,hTo:h,t0:now});return}
+ const s=busState(b,now);Object.assign(b,e,{fixTs:e.ts,from:s.ll,to,hFrom:s.h,hTo:h,t0:now});
+}
+function busFeatures(it,scale,out,label){
+ const COL=it.color||BUS_COLOR;
+ const [lat,lon]=it.ll,hr=it.h*Math.PI/180,ux=Math.sin(hr),uy=Math.cos(hr);
+ const toLL=(a,c)=>{c+=1.9;const e=(a*ux+c*uy)*scale,n=(a*uy-c*ux)*scale;return [lon+e/MLON,lat+n/MLAT]};
+ const L2=6.4,W=1.55,ch=.9;
+ const ring=[[-L2,-W],[L2-ch,-W],[L2,-W+ch],[L2,W-ch],[L2-ch,W],[-L2,W]].map(([p,q])=>toLL(p,q));ring.push(ring[0]);
+ for(const [b0,h0,c] of [[.3,.9,'#2b2f36'],[.9,1.8,COL],[1.8,2.9,'#0f141c'],[2.9,3.3,'#e8eaed']])
+  out.push({type:'Feature',properties:{k:it.key,c,b:b0*scale,h:h0*scale},geometry:{type:'Polygon',coordinates:[ring]}});
+ label.push({type:'Feature',properties:{t:it.code,c:COL,k:it.key},geometry:{type:'Point',coordinates:toLL(0,0)}});
+}
+
+// Position estimée d'une course (rames sans GPS)
+function locate(j,t){
+ const c=j.calls;if(t<c[0].dep||t>c[c.length-1].arr)return null;
+ for(let i=0;i<c.length;i++){
+  if(t>=c[i].arr&&t<=c[i].dep){const n=c[Math.min(i+1,c.length-1)],p=c[Math.max(i-1,0)];
+   const a=stops[(i+1<c.length?c[i]:p).ref],b=stops[(i+1<c.length?n:c[i]).ref];
+   return {ll:[stops[c[i].ref].lat,stops[c[i].ref].lon],h:headingOf([a.lat,a.lon],[b.lat,b.lon])}}
+  if(i+1<c.length&&t>c[i].dep&&t<c[i+1].arr)return posOnSegment(j.line,c[i].ref,c[i+1].ref,(t-c[i].dep)/(c[i+1].arr-c[i].dep));
+ }
+ return null;
+}
+const nextCall=(j,t)=>j&&j.calls.find(c=>c.arr>t);
+
+// --- Modèle 3D stylisé d'une rame (3 caisses), en tranches extrudées
+const MODS=[8.6,7.2,8.6],GAP=.5,HW=2.1,SIDE=2.5;
+const TOTAL=MODS.reduce((a,b)=>a+b,0)+GAP*(MODS.length-1);
+function tramFeatures(it,scale,out,label){
+ const [lat,lon]=it.ll,hr=it.h*Math.PI/180,ux=Math.sin(hr),uy=Math.cos(hr); // ux: est, uy: nord
+ const toLL=(a,c)=>{c+=SIDE;const e=(a*ux+c*uy)*scale,n=(a*uy-c*ux)*scale;return [lon+e/MLON,lat+n/MLAT]};
+ const col=LBY[it.line].color;let x=-TOTAL/2;
+ MODS.forEach((len,k)=>{
+  const a=x,b=x+len;x=b+GAP;
+  const front=k===MODS.length-1,rear=k===0,ch=2.4;
+  const ring=[[a+(rear?ch:0),-HW],[b-(front?ch:0),-HW],...(front?[[b,-HW*.55],[b,HW*.55]]:[]),[b-(front?ch:0),HW],[a+(rear?ch:0),HW],...(rear?[[a,HW*.55],[a,-HW*.55]]:[])];
+  const poly=[ring.map(([p,q])=>toLL(p,q))];poly[0].push(poly[0][0]);
+  const bands=[[.3,1.3,'#2b2f36'],[1.3,2.5,col],[2.5,4.2,'#0f141c'],[4.2,4.9,col]];
+  for(const [b0,h0,c] of bands)out.push({type:'Feature',properties:{k:it.key,c,b:b0*scale,h:h0*scale},geometry:{type:'Polygon',coordinates:poly}});
+  if(k===1){ // équipements de toiture
+   const m=(a+b)/2,r=[[m-2.6,-1.2],[m+2.6,-1.2],[m+2.6,1.2],[m-2.6,1.2]].map(([p,q])=>toLL(p,q));r.push(r[0]);
+   out.push({type:'Feature',properties:{k:it.key,c:'#b4b9c0',b:4.9*scale,h:5.6*scale},geometry:{type:'Polygon',coordinates:[r]}});
+  }
+ });
+ label.push({type:'Feature',properties:{t:LBY[it.line].name,c:col,k:it.key},geometry:{type:'Point',coordinates:toLL(0,0)}});
+}
+
+// --- Rendu
+let showTheo=false,items=[],openKey=null;
+const popup=new maplibregl.Popup({closeOnClick:true,maxWidth:'280px',offset:14});
+popup.on('close',()=>{openKey=null});
+const titleCase=s=>String(s||'').toLowerCase().replace(/(^|[\s'-])(\S)/g,(m,a,b)=>a+b.toUpperCase());
+function popupHtml(it,t){
+ if(it.kind==='bus'){const v=it.v,info=lineInfo[v.route]||{},stp=v.stop&&stops['bordeaux:StopPoint:BP:'+v.stop+':LOC'];
+  const age=v.ts?Math.max(0,Math.round(t/1000-v.ts)):null;
+  return '<div class="pop"><h3 style="color:'+(it.color||BUS_COLOR)+'">Bus '+esc(it.code)+' → '+esc(titleCase(v.label))+'</h3>'+
+   (info.name?esc(info.name)+'<br>':'')+(stp?'Prochain arrêt : <b>'+esc(stp.name)+'</b><br>':'')+
+   '<div class="m">Position GPS'+(age!=null?' il y a '+age+' s':'')+(v.speed!=null?' · '+Math.round(v.speed*3.6)+' km/h':'')+' · véhicule '+esc(String(v.vid).split(':').pop())+'</div></div>'}
+ const l=LBY[it.line],j=it.j,c=nextCall(j,t);
+ const dest=j?j.dest:titleCase(it.v&&it.v.label);
+ let h='<div class="pop"><h3 style="color:'+l.color+'">Tram '+esc(l.name)+' → '+esc(dest)+'</h3>';
+ if(c){const d=c.delay;const late=d==null?'':d>0?' · <span style="color:#ffb36b">+'+d+' min</span>':d<0?' · '+d+' min':' · à l\'heure';
+  h+='Prochain arrêt : <b>'+esc(stops[c.ref].name)+'</b> à '+esc(fmt(c.arr))+late+'<br>'}
+ if(it.kind==='gps'){const v=it.v;const age=v.ts?Math.max(0,Math.round(t/1000-v.ts)):null;
+  h+='<div class="m">Position GPS'+(age!=null?' il y a '+age+' s':'')+(v.speed!=null?' · '+Math.round(v.speed*3.6)+' km/h':'')+' · rame '+esc(String(v.vid).split(':').pop())+'</div>'}
+ else h+='<div class="m">'+(it.kind==='es'?'Position estimée d\'après les horaires temps réel (pas de GPS)':'Horaire théorique uniquement : ce tram ne circule peut-être pas')+'</div>';
+ return h+'</div>';
+}
+let lastPop=0;
+function render(){
+ if(!map.getSource('trams'))return;
+ const t=Date.now(),gpsTrips=new Set();items=[];LINES.forEach(l=>l.count=0);
+ for(const [vid,v] of vehicles){gpsTrips.add(v.trip);const s=vState(v,t);items.push({key:'v'+vid,kind:'gps',line:v.line,ll:s.ll,h:s.h,v,j:byTrip.get(v.trip)})}
+ for(const j of journeys){
+  if(gpsTrips.has(j.trip))continue;
+  const kind=j.rt?'es':'th';if(kind==='th'&&!showTheo)continue;
+  const p=locate(j,t);if(p)items.push({key:'j'+j.trip,kind,line:j.line,ll:p.ll,h:p.h||0,j});
+ }
+ const scale=Math.max(1,Math.min(9,Math.pow(2,16.4-map.getZoom())));
+ const A=[],B=[],lab=[];
+ for(const it of items){
+  const l=LBY[it.line];l.count++;if(!l.on)continue;
+  tramFeatures(it,scale,it.kind==='gps'?A:B,lab);
+ }
+ map.getSource('trams').setData({type:'FeatureCollection',features:A});
+ map.getSource('trams-es').setData({type:'FeatureCollection',features:B});
+ map.getSource('labels').setData({type:'FeatureCollection',features:map.getZoom()<12.5?[]:lab});
+ const BF=[],BL=[];let nb=0;
+ for(const [vid,b] of buses){
+  nb++;const bl=busLines.get(b.route);if(!showBus&&!bl)continue;
+  const s=busState(b,t),info=lineInfo[b.route]||{};
+  const it={key:'b'+vid,kind:'bus',ll:s.ll,h:s.h,v:b,color:bl&&bl.color,code:info.code||String(b.route||'?').replace(/^0+/,'')};
+  items.push(it);busFeatures(it,scale,BF,BL);
+ }
+ map.getSource('bus').setData({type:'FeatureCollection',features:BF});
+ map.getSource('bus-labels').setData({type:'FeatureCollection',features:BL});
+ document.getElementById('nbus').textContent=nb;
+ if(openKey){const it=items.find(i=>i.key===openKey);
+  if(it){popup.setLngLat([it.ll[1],it.ll[0]]);if(t-lastPop>1000){popup.setHTML(popupHtml(it,t));lastPop=t}}else popup.remove()}
+ updatePanel();
+}
+function openTram(key){
+ const it=items.find(i=>i.key===key);if(!it)return;
+ openKey=key;lastPop=Date.now();popup.setLngLat([it.ll[1],it.ll[0]]).setHTML(popupHtml(it,Date.now())).addTo(map);
+}
+function updatePanel(){
+ const tot=LINES.reduce((a,l)=>a+l.count,0);
+ document.getElementById('total').innerHTML=tot+'<small>tram'+(tot>1?'s':'')+' en ligne</small>';
+ for(const l of LINES)document.getElementById('n'+l.id).textContent=l.count;
+}
+function setStatus(err){
+ st.className='status'+(err?' err':'');
+ st.textContent=err||(gpsOk?vehicles.size+' rames et '+buses.size+' bus suivis par GPS · mis à jour à '+new Date(gpsAt).toLocaleTimeString('fr-FR'):'GPS indisponible, positions estimées d\'après les horaires');
+}
+
+// --- Lignes de bus affichées (tracé chargé à la demande)
+const BUS_PAL=['#2f9bff','#22c55e','#eab308','#06b6d4','#f97316','#84cc16','#38bdf8','#f43f5e','#a78bfa','#14b8a6'];
+const busLines=new Map();let palIdx=0;
+const getJ=u=>fetch(u).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()});
+const flatLL=g=>(g.features||[]).flatMap(f=>f.geometry?(f.geometry.type==='MultiLineString'?f.geometry.coordinates:[f.geometry.coordinates]):[]);
+function chemUrl(where){return DH+'sv_chem_l/exports/geojson?where='+encodeURIComponent(where)+'&select=geo_shape'}
+async function addBusLine(id,fit){
+ let bl=busLines.get(id);
+ if(!bl){
+  const info=lineInfo[id]||{};
+  bl={id,code:info.code||id.replace(/^0+/,''),name:info.name||'',color:BUS_PAL[palIdx++%BUS_PAL.length],ll:[],loading:true};
+  busLines.set(id,bl);renderBusChips();
+  const dhId=id.replace(/^0+/,'')||id;
+  try{
+   let g=await getJ(chemUrl('rs_sv_ligne_a="'+dhId+'" and principal="True"'));
+   if(!flatLL(g).length)g=await getJ(chemUrl('rs_sv_ligne_a="'+dhId+'"'));
+   bl.ll=flatLL(g);
+  }catch(e){bl.err=true}
+  bl.loading=false;if(!busLines.has(id))return;
+  drawBusLines();renderBusChips();
+ }
+ if(fit)fitLine(bl);
+}
+function removeBusLine(id){busLines.delete(id);drawBusLines();renderBusChips();render()}
+function lineStops(id){return Object.values(stops).filter(s=>s.lines.includes(id))}
+function fitLine(bl){
+ let pts=bl.ll.flat();
+ if(!pts.length)pts=lineStops(bl.id).map(s=>[s.lon,s.lat]);
+ fitPts(pts);
+}
+function fitPts(pts){
+ if(!pts.length)return;
+ let w=180,e=-180,s=90,n=-90;for(const [x,y] of pts){if(x<w)w=x;if(x>e)e=x;if(y<s)s=y;if(y>n)n=y}
+ const wide=innerWidth>600;
+ map.fitBounds([[w,s],[e,n]],{padding:{top:70,bottom:wide?70:260,left:wide?350:40,right:70},maxZoom:16,duration:1200});
+}
+function drawBusLines(){
+ const F=[],S=[];
+ for(const bl of busLines.values()){
+  for(const c of bl.ll)F.push({type:'Feature',properties:{c:bl.color},geometry:{type:'LineString',coordinates:c}});
+  for(const s of lineStops(bl.id))S.push({type:'Feature',properties:{c:bl.color,n:s.name,g:s.group},geometry:{type:'Point',coordinates:[s.lon,s.lat]}});
+ }
+ map.getSource('buslines').setData({type:'FeatureCollection',features:F});
+ map.getSource('busstops').setData({type:'FeatureCollection',features:S});
+}
+const blBox=document.getElementById('blines');
+function renderBusChips(){
+ blBox.innerHTML=[...busLines.values()].map(bl=>'<div class="bchip" data-id="'+esc(bl.id)+'"><button type="button" class="go" title="Centrer sur la ligne"><span class="pill" style="background:'+bl.color+'">'+esc(bl.code)+'</span><span>'+(bl.loading?'chargement…':bl.err?'tracé indisponible':esc(bl.name))+'</span></button><button type="button" class="x" aria-label="Retirer la ligne '+esc(bl.code)+'">×</button></div>').join('');
+}
+blBox.addEventListener('click',e=>{
+ const chip=e.target.closest('.bchip');if(!chip)return;const id=chip.dataset.id;
+ if(e.target.closest('.x'))removeBusLine(id);else{const bl=busLines.get(id);if(bl)fitLine(bl)}
+});
+// Réseau de bus complet (≈ 7 Mo, chargé seulement si demandé)
+let busnetLoaded=false;
+document.getElementById('busnet').addEventListener('change',async e=>{
+ const on=e.target.checked;map.setLayoutProperty('busnet','visibility',on?'visible':'none');
+ if(on&&!busnetLoaded){
+  st.textContent='Chargement du réseau de bus…';
+  try{const g=await getJ(chemUrl('vehicule="BUS" and principal="True"'));
+   map.getSource('busnet').setData({type:'FeatureCollection',features:flatLL(g).map(c=>({type:'Feature',properties:{},geometry:{type:'LineString',coordinates:c}}))});busnetLoaded=true}
+  catch(err){e.target.checked=false;setStatus('Réseau de bus indisponible ('+err.message+')');return}
+  setStatus();
+ }
+});
+
+// --- Prochains passages à un arrêt (SIRI stop-monitoring)
+const stopPopup=new maplibregl.Popup({closeOnClick:true,maxWidth:'320px',offset:10});
+let openStopG=null;stopPopup.on('close',()=>{openStopG=null});
+function badge(id){
+ const l=LBY[id];if(l)return '<span class="b" style="background:'+l.color+'">'+l.name+'</span>';
+ const bl=busLines.get(id),info=lineInfo[id]||{};
+ return '<span class="b bus" style="background:'+(bl?bl.color:BUS_COLOR)+'">'+esc(info.code||id.replace(/^0+/,''))+'</span>';
+}
+function openStop(g,fly){
+ if(!g)return;openStopG=g;
+ if(fly)map.flyTo({center:[g.lon,g.lat],zoom:Math.max(map.getZoom(),16),duration:1200});
+ stopPopup.setLngLat([g.lon,g.lat]).setHTML('<div class="pop"><h3>'+esc(g.name)+'</h3><div class="m">Chargement des prochains passages…</div></div>').addTo(map);
+ refreshStop();
+}
+async function refreshStop(){
+ const g=openStopG;if(!g)return;
+ const res=await Promise.all(g.refs.slice(0,10).map(r=>getJ(SIRI+'stop-monitoring.json?AccountKey='+KEY+'&MonitoringRef='+encodeURIComponent(r)).catch(()=>null)));
+ const now=Date.now(),list=[];
+ for(const j of res){
+  const v=j&&j.Siri&&j.Siri.ServiceDelivery&&(j.Siri.ServiceDelivery.StopMonitoringDelivery||[])[0];
+  for(const x of (v&&v.MonitoredStopVisit)||[]){
+   const mv=x.MonitoredVehicleJourney||{},c=mv.MonitoredCall||{};
+   const exp=c.ExpectedDepartureTime||c.ExpectedArrivalTime,t=Date.parse(exp||c.AimedDepartureTime||c.AimedArrivalTime);
+   if(isNaN(t)||t<now-30000)continue;
+   const m=/Line:([^:]+):/.exec(mv.LineRef&&mv.LineRef.value||'');
+   list.push({line:m?m[1]:'?',dest:(mv.DestinationName&&mv.DestinationName[0]&&mv.DestinationName[0].value)||'',t,rt:!!exp});
+  }
+ }
+ if(openStopG!==g)return;
+ list.sort((a,b)=>a.t-b.t);
+ const rows=list.slice(0,10).map(d=>{const mn=Math.round((d.t-now)/60000);
+  return '<li>'+badge(d.line)+'<span class="d">'+esc(titleCase(d.dest))+'</span><span class="w'+(d.rt?'':' th')+'">'+(mn<=0?'à l\'approche':mn<60?mn+' min':esc(fmt(d.t)))+'</span></li>'}).join('');
+ stopPopup.setHTML('<div class="pop"><h3>'+esc(g.name)+'</h3>'+(rows?'<ul class="dep">'+rows+'</ul><div class="m" style="margin-top:6px">Gris : horaire théorique · actualisé toutes les 30 s</div>':'<div class="m">Aucun passage annoncé pour le moment.</div>')+'</div>');
+}
+setInterval(()=>{if(openStopG)refreshStop()},30000);
+
+// --- Recherche : lignes de tram, lignes de bus, arrêts
+const qIn=document.getElementById('q'),resBox=document.getElementById('res');let results=[],sel=0;
+function score(keys,n){let best=9;for(const k of keys){if(!k)continue;if(k===n)return 0;if(k.startsWith(n))best=Math.min(best,1);else if((' '+k).includes(' '+n))best=Math.min(best,2);else if(k.includes(n))best=Math.min(best,3)}return best}
+function search(q){
+ const n=norm(q);if(!n)return [];
+ const out=[];
+ for(const l of LINES){const sc=score([norm(l.name),'tram '+norm(l.name),'ligne '+norm(l.name)],n);if(sc<(n.length<2?1:4))out.push({type:'tram',id:l.id,sc,ord:0})}
+ for(const [id,info] of Object.entries(lineInfo)){
+  if(LBY[id])continue;const c=norm(info.code);
+  const sc=score([c,'bus '+c,'ligne '+c,norm(info.name)],n);if(sc<(n.length<2?2:4))out.push({type:'bus',id,sc,ord:1});
+ }
+ if(n.length>=2)for(const g of stopGroups.values()){const sc=score([g.n],n);if(sc<4)out.push({type:'stop',id:g.key,sc,ord:g.tram?2:3})}
+ out.sort((a,b)=>a.sc-b.sc||a.ord-b.ord||(a.type==='stop'?stopGroups.get(a.id).name.localeCompare(stopGroups.get(b.id).name):0));
+ const seenNames=new Set();
+ return out.filter(r=>{if(r.type!=='stop')return true;const g=stopGroups.get(r.id),k=g.n+Math.round(g.lat*200)+Math.round(g.lon*200);if(seenNames.has(k))return false;seenNames.add(k);return true}).slice(0,12);
+}
+function resultHtml(r,i){
+ let ico,t,s;
+ if(r.type==='tram'){const l=LBY[r.id];ico='<span class="ico" style="background:'+l.color+'">'+l.name+'</span>';t='Tram '+l.name;s=l.count+' rame'+(l.count>1?'s':'')+' en ligne'}
+ else if(r.type==='bus'){const info=lineInfo[r.id]||{},bl=busLines.get(r.id);ico='<span class="ico bus" style="background:'+(bl?bl.color:BUS_COLOR)+'">'+esc(info.code)+'</span>';t='Bus '+esc(info.code);s=esc(info.name)+(bl?' · affichée':'')}
+ else{const g=stopGroups.get(r.id);ico='<span class="ico stop"></span>';t=esc(g.name);
+  const ls=[...g.lines].sort((a,b)=>(LBY[b]?1:0)-(LBY[a]?1:0));s='Arrêt · '+ls.slice(0,8).map(l=>LBY[l]?'Tram '+LBY[l].name:esc((lineInfo[l]||{}).code||l)).join(', ')+(ls.length>8?'…':'')}
+ return '<li><button type="button" role="option" data-i="'+i+'" class="'+(i===sel?'on':'')+'">'+ico+'<span><span class="t">'+t+'</span><span class="s">'+s+'</span></span></button></li>';
+}
+function showResults(){
+ const q=qIn.value;results=search(q);sel=0;
+ resBox.innerHTML=results.length?results.map(resultHtml).join(''):(norm(q)?'<li class="none">Aucune ligne ni aucun arrêt trouvé.</li>':'');
+}
+function choose(r){
+ if(!r)return;qIn.value='';resBox.innerHTML='';qIn.blur();
+ if(r.type==='tram'){const l=LBY[r.id];if(!l.on){l.on=true;document.getElementById('c'+l.id).classList.remove('off');drawStatic()}
+  fitPts(shapes.filter(s=>s.line===r.id).flatMap(s=>s.ll.map(([a,b])=>[b,a])))}
+ else if(r.type==='bus')addBusLine(r.id,true);
+ else openStop(stopGroups.get(r.id),true);
+}
+qIn.addEventListener('input',showResults);
+qIn.addEventListener('focus',()=>{if(qIn.value)showResults()});
+qIn.addEventListener('keydown',e=>{
+ if(e.key==='ArrowDown'||e.key==='ArrowUp'){if(!results.length)return;e.preventDefault();sel=(sel+(e.key==='ArrowDown'?1:results.length-1))%results.length;resBox.innerHTML=results.map(resultHtml).join('');resBox.querySelector('.on')?.scrollIntoView({block:'nearest'})}
+ else if(e.key==='Enter'){e.preventDefault();choose(results[sel])}
+ else if(e.key==='Escape'){qIn.value='';resBox.innerHTML=''}
+});
+resBox.addEventListener('mousedown',e=>e.preventDefault());
+resBox.addEventListener('click',e=>{const b=e.target.closest('button[data-i]');if(b)choose(results[+b.dataset.i])});
+qIn.addEventListener('blur',()=>setTimeout(()=>{resBox.innerHTML=''},150));
+
+// --- Interface
+document.getElementById('lines').innerHTML=LINES.map(l=>
+ '<button type="button" class="chip" id="c'+l.id+'" aria-pressed="true"><span class="dot" style="background:'+l.color+'">'+l.name+'</span><b id="n'+l.id+'">0</b></button>').join('');
+for(const l of LINES)document.getElementById('c'+l.id).addEventListener('click',e=>{
+ l.on=!l.on;e.currentTarget.classList.toggle('off',!l.on);e.currentTarget.setAttribute('aria-pressed',l.on);drawStatic();render();
+});
+document.getElementById('cbus').addEventListener('click',e=>{
+ showBus=!showBus;e.currentTarget.classList.toggle('off',!showBus);e.currentTarget.setAttribute('aria-pressed',showBus);
+ document.getElementById('lbus').textContent=showBus?'affichés':'masqués';render();
+});
+document.getElementById('theo').addEventListener('change',e=>{showTheo=e.target.checked;render()});
+const viewBtn=document.getElementById('view');
+viewBtn.addEventListener('click',()=>{const flat=map.getPitch()>5;map.easeTo({pitch:flat?0:HOME.pitch,bearing:flat?0:HOME.bearing,duration:900});viewBtn.textContent=flat?'Vue 3D':'Vue à plat'});
+map.on('pitchend',()=>{viewBtn.textContent=map.getPitch()>5?'Vue à plat':'Vue 3D'});
+document.getElementById('home').addEventListener('click',()=>{map.flyTo({...HOME,duration:1400});viewBtn.textContent='Vue à plat'});
+const panel=document.getElementById('panel'),tg=document.getElementById('toggle');
+tg.addEventListener('click',()=>{panel.classList.toggle('min');tg.textContent=panel.classList.contains('min')?'Détails':'Réduire'});
+for(const id of ['trams','trams-es','labels','bus','bus-labels']){
+ map.on('click',id,e=>{e.preventDefault();const f=e.features&&e.features[0];if(f)openTram(f.properties.k)});
+ map.on('mouseenter',id,()=>{map.getCanvas().style.cursor='pointer'});
+ map.on('mouseleave',id,()=>{map.getCanvas().style.cursor=''});
+}
+for(const id of ['stops','busstops']){
+ map.on('click',id,e=>{if(e.defaultPrevented)return;const f=e.features&&e.features[0];if(f&&f.properties.g){e.preventDefault();openStop(stopGroups.get(f.properties.g),false)}});
+ map.on('mouseenter',id,()=>{map.getCanvas().style.cursor='pointer'});
+ map.on('mouseleave',id,()=>{map.getCanvas().style.cursor=''});
+}
+
+async function tickGps(){try{await fetchGps()}catch(e){gpsOk=false;vehicles.clear();buses.clear()}setStatus()}
+async function tickLive(){try{await fetchLive()}catch(e){setStatus('Impossible de joindre l\'API TBM ('+e.message+'). Nouvel essai dans 30 s.')}}
+map.on('load',async()=>{
+ addLayers();
+ st.textContent='Chargement des arrêts et des tracés…';
+ try{await loadStatic()}catch(e){setStatus('Échec du chargement des arrêts : '+e.message);return}
+ await tickLive();await tickGps();render();
+ setInterval(tickLive,REFRESH);setInterval(tickGps,GPS_EVERY);
+ const slow=matchMedia('(prefers-reduced-motion: reduce)').matches;
+ let last=0;const loop=now=>{if(now-last>(slow?2000:80)){render();last=now}requestAnimationFrame(loop)};requestAnimationFrame(loop);
+});
+map.on('error',e=>{if(e&&e.error&&/style|openfreemap/i.test(String(e.error.message||'')))setStatus('Fond de carte indisponible : '+e.error.message)});
+}
+</script>
+</body>
+</html>
