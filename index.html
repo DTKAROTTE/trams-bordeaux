@@ -41,6 +41,32 @@ h1{margin:0 0 2px;font-size:22px;line-height:1.1;font-stretch:112%;font-weight:8
 .maplibregl-ctrl-attrib{background:rgba(16,18,22,.75)!important;color:#9aa1ab}
 .maplibregl-ctrl-attrib a{color:#c9cdd3}
 #toggle{display:none}
+.search{position:relative;margin:0 0 4px}
+.search input{width:100%;min-height:42px;border-radius:10px;border:1px solid #2b3038;background:#0f1216;color:inherit;font:16px Archivo,sans-serif;padding:8px 12px}
+.search input:focus{outline:2px solid #fff;outline-offset:0}
+.res{list-style:none;margin:4px 0 0;padding:4px;position:absolute;left:0;right:0;top:100%;z-index:20;background:#171a1f;border:1px solid #2b3038;border-radius:10px;max-height:min(360px,50vh);overflow:auto;box-shadow:0 12px 30px rgba(0,0,0,.5)}
+.res:empty{display:none}
+.res button{display:flex;align-items:center;gap:10px;width:100%;min-height:44px;padding:6px 8px;border:0;border-radius:8px;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.res button:hover,.res button.on{background:#232830}
+.res .t{display:block;font-weight:700}
+.res .s{display:block;color:#9aa1ab;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+.res .ico{flex:none;width:28px;height:28px;border-radius:50%;display:grid;place-items:center;font-weight:800;font-size:12px;color:#fff}
+.res .ico.stop{background:#0d0f12;border:2px solid #e8eaed;width:16px;height:16px;margin:0 6px}
+.res .ico.bus{border-radius:6px;width:auto;min-width:28px;padding:0 5px;height:22px}
+.res .none{padding:10px;color:#9aa1ab;font-size:13px}
+.blines{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.bchip{display:flex;align-items:center;gap:6px;max-width:100%;border:1px solid #2b3038;background:#171a1f;border-radius:9px;padding:3px 3px 3px 6px}
+.bchip .go{display:flex;align-items:center;gap:6px;min-height:32px;background:none;border:0;color:inherit;font:13px Archivo,sans-serif;cursor:pointer;min-width:0}
+.bchip .go span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:150px}
+.bchip .x{width:32px;height:32px;border:0;border-radius:7px;background:none;color:#9aa1ab;font-size:18px;cursor:pointer}
+.bchip .x:hover{background:#232830;color:#fff}
+.dep{list-style:none;margin:6px 0 0;padding:0;min-width:230px}
+.dep li{display:flex;align-items:center;gap:8px;padding:4px 0;border-top:1px solid #262a31}
+.dep .d{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:13px}
+.dep .w{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.dep .w.th{color:#9aa1ab;font-weight:500}
+.dep .b{flex:none;min-width:24px;height:22px;border-radius:11px;display:grid;place-items:center;padding:0 6px;font-weight:800;font-size:12px;color:#fff}
+.dep .b.bus{border-radius:5px}
 @media(max-width:600px){
  .panel{top:auto;bottom:10px;left:10px;right:10px;width:auto;padding:12px}
  .big{font-size:30px}
@@ -55,11 +81,17 @@ h1{margin:0 0 2px;font-size:22px;line-height:1.1;font-stretch:112%;font-weight:8
  <button id="toggle" type="button">Réduire</button>
  <h1>Trams de Bordeaux</h1>
  <p class="sub">Trams et bus en 3D à leur position GPS, complétés par les horaires temps réel TBM</p>
+ <div class="search" role="search">
+  <input id="q" type="search" placeholder="Ligne ou arrêt (ex. A, 15, Quinconces)" autocomplete="off" aria-label="Rechercher une ligne ou un arrêt" aria-controls="res">
+  <ul class="res" id="res" role="listbox"></ul>
+ </div>
  <div class="big" id="total">…<small>trams en ligne</small></div>
  <div class="hide">
   <div class="lines" id="lines"></div>
+  <div class="blines" id="blines"></div>
   <div class="lines"><button type="button" class="chip wide" id="cbus" aria-pressed="true"><span class="pill">Bus</span><b id="nbus">0</b><span class="lbl" id="lbus">affichés</span></button></div>
   <div class="legend"><span><i></i>Position GPS</span><span><i class="es"></i>Estimée (horaires)</span></div>
+  <label class="opt"><input type="checkbox" id="busnet"> Afficher tout le réseau de bus (tracés)</label>
   <label class="opt"><input type="checkbox" id="theo"> Afficher aussi les courses théoriques (sans signal, souvent fantômes)</label>
   <div class="row"><button class="btn" id="view" type="button">Vue à plat</button><button class="btn" id="home" type="button">Recentrer</button></div>
  </div>
@@ -98,7 +130,8 @@ const MLAT=111320,MLON=111320*KX;
 const headingOf=(a,b)=>(Math.atan2((b[1]-a[1])*MLON,(b[0]-a[0])*MLAT)*180/Math.PI+360)%360; // a,b=[lat,lon]
 const angDiff=(a,b)=>((b-a+540)%360)-180;
 
-let stops={},shapes=[];const lineInfo={};
+let stops={},shapes=[];const lineInfo={},stopGroups=new Map();
+const norm=s=>String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]+/g,' ').trim();
 const projCache=new Map(),segCache=new Map();
 function projectPt(p,s){
  let best={err:1e9,d:0,i:0};
@@ -148,6 +181,14 @@ function addLayers(){
  // Bâtiments en relief
  map.addLayer({id:'bld3d',type:'fill-extrusion',source:'openmaptiles','source-layer':'building',minzoom:13,
   paint:{'fill-extrusion-color':'#1f2329','fill-extrusion-height':['coalesce',['get','render_height'],8],'fill-extrusion-base':['coalesce',['get','render_min_height'],0],'fill-extrusion-opacity':.85}});
+ map.addSource('busnet',{type:'geojson',data:EMPTY});
+ map.addLayer({id:'busnet',type:'line',source:'busnet',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':'#5b8db8','line-width':['interpolate',['linear'],['zoom'],11,.8,16,2.5],'line-opacity':.35}});
+ map.addSource('buslines',{type:'geojson',data:EMPTY});
+ map.addLayer({id:'buslines-glow',type:'line',source:'buslines',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':['get','c'],'line-width':['interpolate',['linear'],['zoom'],11,3,16,9],'line-opacity':.18,'line-blur':4}});
+ map.addLayer({id:'buslines',type:'line',source:'buslines',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':['get','c'],'line-width':['interpolate',['linear'],['zoom'],11,1.3,16,3.5],'line-opacity':.8,'line-dasharray':[2,1]}});
+ map.addSource('busstops',{type:'geojson',data:EMPTY});
+ map.addLayer({id:'busstops',type:'circle',source:'busstops',minzoom:12.5,paint:{'circle-radius':['interpolate',['linear'],['zoom'],12,1.5,16,4],'circle-color':'#0d0f12','circle-stroke-color':['get','c'],'circle-stroke-width':1.5}});
+ map.addLayer({id:'busstop-names',type:'symbol',source:'busstops',minzoom:15.5,layout:{'text-field':['get','n'],'text-font':['Noto Sans Regular'],'text-size':11,'text-offset':[0,1],'text-anchor':'top'},paint:{'text-color':'#c9cdd3','text-halo-color':'#0d0f12','text-halo-width':1.2}});
  map.addSource('lines',{type:'geojson',data:EMPTY});
  map.addLayer({id:'lines-glow',type:'line',source:'lines',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':['get','c'],'line-width':['interpolate',['linear'],['zoom'],11,3,16,10],'line-opacity':.18,'line-blur':4}});
  map.addLayer({id:'lines',type:'line',source:'lines',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':['get','c'],'line-width':['interpolate',['linear'],['zoom'],11,1.5,16,4],'line-opacity':.75}});
@@ -162,7 +203,7 @@ function addLayers(){
  map.addSource('bus',{type:'geojson',data:EMPTY});
  map.addLayer({id:'bus',type:'fill-extrusion',source:'bus',paint:{...ext,'fill-extrusion-opacity':1}});
  map.addSource('bus-labels',{type:'geojson',data:EMPTY});
- map.addLayer({id:'bus-labels',type:'symbol',source:'bus-labels',minzoom:13.5,layout:{'text-field':['get','t'],'text-font':['Noto Sans Regular'],'text-size':11,'text-offset':[0,-1.5],'text-allow-overlap':true,'text-ignore-placement':true},paint:{'text-color':'#fff','text-halo-color':'#3b8fe0','text-halo-width':2.5}});
+ map.addLayer({id:'bus-labels',type:'symbol',source:'bus-labels',minzoom:13.5,layout:{'text-field':['get','t'],'text-font':['Noto Sans Regular'],'text-size':11,'text-offset':[0,-1.5],'text-allow-overlap':true,'text-ignore-placement':true},paint:{'text-color':'#fff','text-halo-color':['get','c'],'text-halo-width':2.5}});
  map.addSource('labels',{type:'geojson',data:EMPTY});
  map.addLayer({id:'labels',type:'symbol',source:'labels',layout:{'text-field':['get','t'],'text-font':['Noto Sans Regular'],'text-size':12,'text-offset':[0,-1.6],'text-allow-overlap':true,'text-ignore-placement':true},paint:{'text-color':'#fff','text-halo-color':['get','c'],'text-halo-width':3}});
 }
@@ -182,8 +223,16 @@ async function loadStatic(){
  for(const s of sp.Siri.StopPointsDelivery.AnnotatedStopPointRef||[]){
   const ref=s.StopPointRef&&s.StopPointRef.value,loc=s.Location;if(!ref||!loc)continue;
   const lines=(s.Lines||[]).map(x=>x.value||x);
-  stops[ref]={lat:+loc.latitude,lon:+loc.longitude,name:(s.StopName&&s.StopName.value)||ref,tram:lines.some(l=>tramIds.has(l)),xy:P(+loc.latitude,+loc.longitude)};
+  stops[ref]={lat:+loc.latitude,lon:+loc.longitude,name:(s.StopName&&s.StopName.value)||ref,tram:lines.some(l=>tramIds.has(l)),xy:P(+loc.latitude,+loc.longitude),
+   lines:lines.map(l=>{const m=/Line:([^:]+):/.exec(l);return m?m[1]:null}).filter(Boolean),area:(s.StopAreaRef&&s.StopAreaRef.value)||ref};
  }
+ // Regroupement des quais par zone d'arrêt (pour la recherche et les prochains passages)
+ const G=new Map();
+ for(const [ref,s] of Object.entries(stops)){
+  let g=G.get(s.area);if(!g){g={key:s.area,name:s.name,refs:[],lat:0,lon:0,lines:new Set()};G.set(s.area,g)}
+  g.refs.push(ref);g.lat+=s.lat;g.lon+=s.lon;s.lines.forEach(l=>g.lines.add(l));s.group=s.area;
+ }
+ for(const g of G.values()){g.lat/=g.refs.length;g.lon/=g.refs.length;g.n=norm(g.name);g.tram=[...g.lines].some(l=>LBY[l]);stopGroups.set(g.key,g)}
  for(const f of geo.features||[]){
   const g=f.geometry;if(!g)continue;
   for(const c of (g.type==='MultiLineString'?g.coordinates:[g.coordinates])){
@@ -202,7 +251,7 @@ function drawStatic(){
  const seen=new Set(),f=[];
  for(const s of Object.values(stops)){
   if(!s.tram)continue;const k=s.name+Math.round(s.lat*500)+Math.round(s.lon*500);if(seen.has(k))continue;seen.add(k);
-  f.push({type:'Feature',properties:{n:s.name},geometry:{type:'Point',coordinates:[s.lon,s.lat]}});
+  f.push({type:'Feature',properties:{n:s.name,g:s.group},geometry:{type:'Point',coordinates:[s.lon,s.lat]}});
  }
  map.getSource('stops').setData({type:'FeatureCollection',features:f});
 }
@@ -358,13 +407,14 @@ function updateBus(e,now){
  const s=busState(b,now);Object.assign(b,e,{fixTs:e.ts,from:s.ll,to,hFrom:s.h,hTo:h,t0:now});
 }
 function busFeatures(it,scale,out,label){
+ const COL=it.color||BUS_COLOR;
  const [lat,lon]=it.ll,hr=it.h*Math.PI/180,ux=Math.sin(hr),uy=Math.cos(hr);
  const toLL=(a,c)=>{c+=1.9;const e=(a*ux+c*uy)*scale,n=(a*uy-c*ux)*scale;return [lon+e/MLON,lat+n/MLAT]};
  const L2=6.4,W=1.55,ch=.9;
  const ring=[[-L2,-W],[L2-ch,-W],[L2,-W+ch],[L2,W-ch],[L2-ch,W],[-L2,W]].map(([p,q])=>toLL(p,q));ring.push(ring[0]);
- for(const [b0,h0,c] of [[.3,.9,'#2b2f36'],[.9,1.8,BUS_COLOR],[1.8,2.9,'#0f141c'],[2.9,3.3,'#e8eaed']])
+ for(const [b0,h0,c] of [[.3,.9,'#2b2f36'],[.9,1.8,COL],[1.8,2.9,'#0f141c'],[2.9,3.3,'#e8eaed']])
   out.push({type:'Feature',properties:{k:it.key,c,b:b0*scale,h:h0*scale},geometry:{type:'Polygon',coordinates:[ring]}});
- label.push({type:'Feature',properties:{t:it.code,k:it.key},geometry:{type:'Point',coordinates:toLL(0,0)}});
+ label.push({type:'Feature',properties:{t:it.code,c:COL,k:it.key},geometry:{type:'Point',coordinates:toLL(0,0)}});
 }
 
 // Position estimée d'une course (rames sans GPS)
@@ -410,7 +460,7 @@ const titleCase=s=>String(s||'').toLowerCase().replace(/(^|[\s'-])(\S)/g,(m,a,b)
 function popupHtml(it,t){
  if(it.kind==='bus'){const v=it.v,info=lineInfo[v.route]||{},stp=v.stop&&stops['bordeaux:StopPoint:BP:'+v.stop+':LOC'];
   const age=v.ts?Math.max(0,Math.round(t/1000-v.ts)):null;
-  return '<div class="pop"><h3 style="color:'+BUS_COLOR+'">Bus '+esc(it.code)+' → '+esc(titleCase(v.label))+'</h3>'+
+  return '<div class="pop"><h3 style="color:'+(it.color||BUS_COLOR)+'">Bus '+esc(it.code)+' → '+esc(titleCase(v.label))+'</h3>'+
    (info.name?esc(info.name)+'<br>':'')+(stp?'Prochain arrêt : <b>'+esc(stp.name)+'</b><br>':'')+
    '<div class="m">Position GPS'+(age!=null?' il y a '+age+' s':'')+(v.speed!=null?' · '+Math.round(v.speed*3.6)+' km/h':'')+' · véhicule '+esc(String(v.vid).split(':').pop())+'</div></div>'}
  const l=LBY[it.line],j=it.j,c=nextCall(j,t);
@@ -444,9 +494,9 @@ function render(){
  map.getSource('labels').setData({type:'FeatureCollection',features:map.getZoom()<12.5?[]:lab});
  const BF=[],BL=[];let nb=0;
  for(const [vid,b] of buses){
-  nb++;if(!showBus)continue;
+  nb++;const bl=busLines.get(b.route);if(!showBus&&!bl)continue;
   const s=busState(b,t),info=lineInfo[b.route]||{};
-  const it={key:'b'+vid,kind:'bus',ll:s.ll,h:s.h,v:b,code:info.code||String(b.route||'?').replace(/^0+/,'')};
+  const it={key:'b'+vid,kind:'bus',ll:s.ll,h:s.h,v:b,color:bl&&bl.color,code:info.code||String(b.route||'?').replace(/^0+/,'')};
   items.push(it);busFeatures(it,scale,BF,BL);
  }
  map.getSource('bus').setData({type:'FeatureCollection',features:BF});
@@ -470,6 +520,154 @@ function setStatus(err){
  st.textContent=err||(gpsOk?vehicles.size+' rames et '+buses.size+' bus suivis par GPS · mis à jour à '+new Date(gpsAt).toLocaleTimeString('fr-FR'):'GPS indisponible, positions estimées d\'après les horaires');
 }
 
+// --- Lignes de bus affichées (tracé chargé à la demande)
+const BUS_PAL=['#22c55e','#eab308','#f97316','#06b6d4','#f43f5e','#84cc16','#a78bfa','#14b8a6','#fde047','#fb923c'];
+const busLines=new Map();let palIdx=0;
+const getJ=u=>fetch(u).then(r=>{if(!r.ok)throw new Error(r.status);return r.json()});
+const flatLL=g=>(g.features||[]).flatMap(f=>f.geometry?(f.geometry.type==='MultiLineString'?f.geometry.coordinates:[f.geometry.coordinates]):[]);
+function chemUrl(where){return DH+'sv_chem_l/exports/geojson?where='+encodeURIComponent(where)+'&select=geo_shape'}
+async function addBusLine(id,fit){
+ let bl=busLines.get(id);
+ if(!bl){
+  const info=lineInfo[id]||{};
+  bl={id,code:info.code||id.replace(/^0+/,''),name:info.name||'',color:BUS_PAL[palIdx++%BUS_PAL.length],ll:[],loading:true};
+  busLines.set(id,bl);renderBusChips();
+  const dhId=id.replace(/^0+/,'')||id;
+  try{
+   let g=await getJ(chemUrl('rs_sv_ligne_a="'+dhId+'" and principal="True"'));
+   if(!flatLL(g).length)g=await getJ(chemUrl('rs_sv_ligne_a="'+dhId+'"'));
+   bl.ll=flatLL(g);
+  }catch(e){bl.err=true}
+  bl.loading=false;if(!busLines.has(id))return;
+  drawBusLines();renderBusChips();
+ }
+ if(fit)fitLine(bl);
+}
+function removeBusLine(id){busLines.delete(id);drawBusLines();renderBusChips();render()}
+function lineStops(id){return Object.values(stops).filter(s=>s.lines.includes(id))}
+function fitLine(bl){
+ let pts=bl.ll.flat();
+ if(!pts.length)pts=lineStops(bl.id).map(s=>[s.lon,s.lat]);
+ fitPts(pts);
+}
+function fitPts(pts){
+ if(!pts.length)return;
+ let w=180,e=-180,s=90,n=-90;for(const [x,y] of pts){if(x<w)w=x;if(x>e)e=x;if(y<s)s=y;if(y>n)n=y}
+ const wide=innerWidth>600;
+ map.fitBounds([[w,s],[e,n]],{padding:{top:70,bottom:wide?70:260,left:wide?350:40,right:70},maxZoom:16,duration:1200});
+}
+function drawBusLines(){
+ const F=[],S=[];
+ for(const bl of busLines.values()){
+  for(const c of bl.ll)F.push({type:'Feature',properties:{c:bl.color},geometry:{type:'LineString',coordinates:c}});
+  for(const s of lineStops(bl.id))S.push({type:'Feature',properties:{c:bl.color,n:s.name,g:s.group},geometry:{type:'Point',coordinates:[s.lon,s.lat]}});
+ }
+ map.getSource('buslines').setData({type:'FeatureCollection',features:F});
+ map.getSource('busstops').setData({type:'FeatureCollection',features:S});
+}
+const blBox=document.getElementById('blines');
+function renderBusChips(){
+ blBox.innerHTML=[...busLines.values()].map(bl=>'<div class="bchip" data-id="'+esc(bl.id)+'"><button type="button" class="go" title="Centrer sur la ligne"><span class="pill" style="background:'+bl.color+'">'+esc(bl.code)+'</span><span>'+(bl.loading?'chargement…':bl.err?'tracé indisponible':esc(bl.name))+'</span></button><button type="button" class="x" aria-label="Retirer la ligne '+esc(bl.code)+'">×</button></div>').join('');
+}
+blBox.addEventListener('click',e=>{
+ const chip=e.target.closest('.bchip');if(!chip)return;const id=chip.dataset.id;
+ if(e.target.closest('.x'))removeBusLine(id);else{const bl=busLines.get(id);if(bl)fitLine(bl)}
+});
+// Réseau de bus complet (≈ 7 Mo, chargé seulement si demandé)
+let busnetLoaded=false;
+document.getElementById('busnet').addEventListener('change',async e=>{
+ const on=e.target.checked;map.setLayoutProperty('busnet','visibility',on?'visible':'none');
+ if(on&&!busnetLoaded){
+  st.textContent='Chargement du réseau de bus…';
+  try{const g=await getJ(chemUrl('vehicule="BUS" and principal="True"'));
+   map.getSource('busnet').setData({type:'FeatureCollection',features:flatLL(g).map(c=>({type:'Feature',properties:{},geometry:{type:'LineString',coordinates:c}}))});busnetLoaded=true}
+  catch(err){e.target.checked=false;setStatus('Réseau de bus indisponible ('+err.message+')');return}
+  setStatus();
+ }
+});
+
+// --- Prochains passages à un arrêt (SIRI stop-monitoring)
+const stopPopup=new maplibregl.Popup({closeOnClick:true,maxWidth:'320px',offset:10});
+let openStopG=null;stopPopup.on('close',()=>{openStopG=null});
+function badge(id){
+ const l=LBY[id];if(l)return '<span class="b" style="background:'+l.color+'">'+l.name+'</span>';
+ const bl=busLines.get(id),info=lineInfo[id]||{};
+ return '<span class="b bus" style="background:'+(bl?bl.color:BUS_COLOR)+'">'+esc(info.code||id.replace(/^0+/,''))+'</span>';
+}
+function openStop(g,fly){
+ if(!g)return;openStopG=g;
+ if(fly)map.flyTo({center:[g.lon,g.lat],zoom:Math.max(map.getZoom(),16),duration:1200});
+ stopPopup.setLngLat([g.lon,g.lat]).setHTML('<div class="pop"><h3>'+esc(g.name)+'</h3><div class="m">Chargement des prochains passages…</div></div>').addTo(map);
+ refreshStop();
+}
+async function refreshStop(){
+ const g=openStopG;if(!g)return;
+ const res=await Promise.all(g.refs.slice(0,10).map(r=>getJ(SIRI+'stop-monitoring.json?AccountKey='+KEY+'&MonitoringRef='+encodeURIComponent(r)).catch(()=>null)));
+ const now=Date.now(),list=[];
+ for(const j of res){
+  const v=j&&j.Siri&&j.Siri.ServiceDelivery&&(j.Siri.ServiceDelivery.StopMonitoringDelivery||[])[0];
+  for(const x of (v&&v.MonitoredStopVisit)||[]){
+   const mv=x.MonitoredVehicleJourney||{},c=mv.MonitoredCall||{};
+   const exp=c.ExpectedDepartureTime||c.ExpectedArrivalTime,t=Date.parse(exp||c.AimedDepartureTime||c.AimedArrivalTime);
+   if(isNaN(t)||t<now-30000)continue;
+   const m=/Line:([^:]+):/.exec(mv.LineRef&&mv.LineRef.value||'');
+   list.push({line:m?m[1]:'?',dest:(mv.DestinationName&&mv.DestinationName[0]&&mv.DestinationName[0].value)||'',t,rt:!!exp});
+  }
+ }
+ if(openStopG!==g)return;
+ list.sort((a,b)=>a.t-b.t);
+ const rows=list.slice(0,10).map(d=>{const mn=Math.round((d.t-now)/60000);
+  return '<li>'+badge(d.line)+'<span class="d">'+esc(titleCase(d.dest))+'</span><span class="w'+(d.rt?'':' th')+'">'+(mn<=0?'à l\'approche':mn<60?mn+' min':esc(fmt(d.t)))+'</span></li>'}).join('');
+ stopPopup.setHTML('<div class="pop"><h3>'+esc(g.name)+'</h3>'+(rows?'<ul class="dep">'+rows+'</ul><div class="m" style="margin-top:6px">Gris : horaire théorique · actualisé toutes les 30 s</div>':'<div class="m">Aucun passage annoncé pour le moment.</div>')+'</div>');
+}
+setInterval(()=>{if(openStopG)refreshStop()},30000);
+
+// --- Recherche : lignes de tram, lignes de bus, arrêts
+const qIn=document.getElementById('q'),resBox=document.getElementById('res');let results=[],sel=0;
+function score(keys,n){let best=9;for(const k of keys){if(!k)continue;if(k===n)return 0;if(k.startsWith(n))best=Math.min(best,1);else if((' '+k).includes(' '+n))best=Math.min(best,2);else if(k.includes(n))best=Math.min(best,3)}return best}
+function search(q){
+ const n=norm(q);if(!n)return [];
+ const out=[];
+ for(const l of LINES){const sc=score([norm(l.name),'tram '+norm(l.name),'ligne '+norm(l.name)],n);if(sc<(n.length<2?1:4))out.push({type:'tram',id:l.id,sc,ord:0})}
+ for(const [id,info] of Object.entries(lineInfo)){
+  if(LBY[id])continue;const c=norm(info.code);
+  const sc=score([c,'bus '+c,'ligne '+c,norm(info.name)],n);if(sc<(n.length<2?2:4))out.push({type:'bus',id,sc,ord:1});
+ }
+ if(n.length>=2)for(const g of stopGroups.values()){const sc=score([g.n],n);if(sc<4)out.push({type:'stop',id:g.key,sc,ord:g.tram?2:3})}
+ out.sort((a,b)=>a.sc-b.sc||a.ord-b.ord||(a.type==='stop'?stopGroups.get(a.id).name.localeCompare(stopGroups.get(b.id).name):0));
+ const seenNames=new Set();
+ return out.filter(r=>{if(r.type!=='stop')return true;const g=stopGroups.get(r.id),k=g.n+Math.round(g.lat*200)+Math.round(g.lon*200);if(seenNames.has(k))return false;seenNames.add(k);return true}).slice(0,12);
+}
+function resultHtml(r,i){
+ let ico,t,s;
+ if(r.type==='tram'){const l=LBY[r.id];ico='<span class="ico" style="background:'+l.color+'">'+l.name+'</span>';t='Tram '+l.name;s=l.count+' rame'+(l.count>1?'s':'')+' en ligne'}
+ else if(r.type==='bus'){const info=lineInfo[r.id]||{},bl=busLines.get(r.id);ico='<span class="ico bus" style="background:'+(bl?bl.color:BUS_COLOR)+'">'+esc(info.code)+'</span>';t='Bus '+esc(info.code);s=esc(info.name)+(bl?' · affichée':'')}
+ else{const g=stopGroups.get(r.id);ico='<span class="ico stop"></span>';t=esc(g.name);
+  const ls=[...g.lines].sort((a,b)=>(LBY[b]?1:0)-(LBY[a]?1:0));s='Arrêt'+(ls.length?' · ':'')+ls.slice(0,8).map(l=>LBY[l]?'Tram '+LBY[l].name:esc((lineInfo[l]||{}).code||l)).join(', ')+(ls.length>8?'…':'')}
+ return '<li><button type="button" role="option" data-i="'+i+'" class="'+(i===sel?'on':'')+'">'+ico+'<span><span class="t">'+t+'</span><span class="s">'+s+'</span></span></button></li>';
+}
+function showResults(){
+ const q=qIn.value;results=search(q);sel=0;
+ resBox.innerHTML=results.length?results.map(resultHtml).join(''):(norm(q)?'<li class="none">Aucune ligne ni aucun arrêt trouvé.</li>':'');
+}
+function choose(r){
+ if(!r)return;qIn.value='';resBox.innerHTML='';qIn.blur();
+ if(r.type==='tram'){const l=LBY[r.id];if(!l.on){l.on=true;document.getElementById('c'+l.id).classList.remove('off');drawStatic()}
+  fitPts(shapes.filter(s=>s.line===r.id).flatMap(s=>s.ll.map(([a,b])=>[b,a])))}
+ else if(r.type==='bus')addBusLine(r.id,true);
+ else openStop(stopGroups.get(r.id),true);
+}
+qIn.addEventListener('input',showResults);
+qIn.addEventListener('focus',()=>{if(qIn.value)showResults()});
+qIn.addEventListener('keydown',e=>{
+ if(e.key==='ArrowDown'||e.key==='ArrowUp'){if(!results.length)return;e.preventDefault();sel=(sel+(e.key==='ArrowDown'?1:results.length-1))%results.length;resBox.innerHTML=results.map(resultHtml).join('');resBox.querySelector('.on')?.scrollIntoView({block:'nearest'})}
+ else if(e.key==='Enter'){e.preventDefault();choose(results[sel])}
+ else if(e.key==='Escape'){qIn.value='';resBox.innerHTML=''}
+});
+resBox.addEventListener('mousedown',e=>e.preventDefault());
+resBox.addEventListener('click',e=>{const b=e.target.closest('button[data-i]');if(b)choose(results[+b.dataset.i])});
+qIn.addEventListener('blur',()=>setTimeout(()=>{resBox.innerHTML=''},150));
+
 // --- Interface
 document.getElementById('lines').innerHTML=LINES.map(l=>
  '<button type="button" class="chip" id="c'+l.id+'" aria-pressed="true"><span class="dot" style="background:'+l.color+'">'+l.name+'</span><b id="n'+l.id+'">0</b></button>').join('');
@@ -489,6 +687,11 @@ const panel=document.getElementById('panel'),tg=document.getElementById('toggle'
 tg.addEventListener('click',()=>{panel.classList.toggle('min');tg.textContent=panel.classList.contains('min')?'Détails':'Réduire'});
 for(const id of ['trams','trams-es','labels','bus','bus-labels']){
  map.on('click',id,e=>{e.preventDefault();const f=e.features&&e.features[0];if(f)openTram(f.properties.k)});
+ map.on('mouseenter',id,()=>{map.getCanvas().style.cursor='pointer'});
+ map.on('mouseleave',id,()=>{map.getCanvas().style.cursor=''});
+}
+for(const id of ['stops','busstops']){
+ map.on('click',id,e=>{if(e.defaultPrevented)return;const f=e.features&&e.features[0];if(f&&f.properties.g){e.preventDefault();openStop(stopGroups.get(f.properties.g),false)}});
  map.on('mouseenter',id,()=>{map.getCanvas().style.cursor='pointer'});
  map.on('mouseleave',id,()=>{map.getCanvas().style.cursor=''});
 }
