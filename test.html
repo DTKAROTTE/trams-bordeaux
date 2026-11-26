@@ -347,8 +347,8 @@ function addLayers(){
  map.addLayer({id:'busstops',type:'circle',source:'busstops',minzoom:12.5,paint:{'circle-radius':['interpolate',['linear'],['zoom'],12,1.5,16,4],'circle-color':'#0d0f12','circle-stroke-color':['get','c'],'circle-stroke-width':1.5}});
  map.addLayer({id:'busstop-names',type:'symbol',source:'busstops',minzoom:15.5,layout:{'text-field':['get','n'],'text-font':['Noto Sans Regular'],'text-size':11,'text-offset':[0,1],'text-anchor':'top'},paint:{'text-color':'#c9cdd3','text-halo-color':'#0d0f12','text-halo-width':1.2}});
  map.addSource('lines',{type:'geojson',data:EMPTY});
- map.addLayer({id:'lines-glow',type:'line',source:'lines',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':['get','c'],'line-width':['interpolate',['linear'],['zoom'],11,3,16,10],'line-opacity':.18,'line-blur':4}});
- map.addLayer({id:'lines',type:'line',source:'lines',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':['get','c'],'line-width':['interpolate',['linear'],['zoom'],11,1.5,16,4],'line-opacity':.75}});
+ map.addLayer({id:'lines-glow',type:'line',source:'lines',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':['get','c'],'line-width':['interpolate',['exponential',1.6],['zoom'],11,3,16,10,22,160],'line-opacity':.18,'line-blur':4}});
+ map.addLayer({id:'lines',type:'line',source:'lines',layout:{'line-cap':'round','line-join':'round'},paint:{'line-color':['get','c'],'line-width':['interpolate',['exponential',1.6],['zoom'],11,1.5,16,4,22,60],'line-opacity':.75}});
  map.addSource('stops',{type:'geojson',data:EMPTY});
  map.addLayer({id:'stops',type:'circle',source:'stops',paint:{'circle-radius':['interpolate',['linear'],['zoom'],11,1.5,16,4],'circle-color':'#0d0f12','circle-stroke-color':'#e8eaed','circle-stroke-width':1}});
  map.addLayer({id:'stop-names',type:'symbol',source:'stops',minzoom:15,layout:{'text-field':['get','n'],'text-font':['Noto Sans Regular'],'text-size':11,'text-offset':[0,1],'text-anchor':'top'},paint:{'text-color':'#c9cdd3','text-halo-color':'#0d0f12','text-halo-width':1.2}});
@@ -1015,12 +1015,12 @@ function followTick(t){
  if(!it){stopFollow();return}
  follow.h+=angDiff(follow.h,it.h)*(follow.cab?0.05:0.06);
  if(!map.isEasing()){
-  if(follow.cab){ // caméra à hauteur de cabine (~5 m), posée à l'avant du véhicule, regard vers l'avant
-   // MapLibre place la caméra à 1,5 × hauteur d'écran (en pixels) du point visé : on choisit le zoom pour que cette distance fasse 24 m
-   const H=map.getCanvas().clientHeight||800,dist=24,pt=77,pr=pt*Math.PI/180;
+  if(follow.cab){ // caméra juste derrière et au-dessus de la cabine (~13 m), regard vers l'avant
+   // MapLibre place la caméra à 1,5 × hauteur d'écran (en pixels) du point visé : on choisit le zoom pour que cette distance fasse 40 m
+   const H=map.getCanvas().clientHeight||800,dist=40,pt=71,pr=pt*Math.PI/180;
    const zc=Math.min(23.5,Math.log2(156543.03*KX*1.5*H/dist));
    const front=it.kind==='bus'?6.4:it.kind==='boat'?12:TOTAL/2,side=it.kind==='boat'?0:(it.kind==='bus'?1.9:SIDE);
-   const r=follow.h*Math.PI/180,ahead=front+dist*Math.sin(pr);
+   const r=follow.h*Math.PI/180,ahead=dist*Math.sin(pr)-front*.2;
    map.jumpTo({center:[it.ll[1]+(Math.sin(r)*ahead+Math.cos(r)*side)/MLON,it.ll[0]+(Math.cos(r)*ahead-Math.sin(r)*side)/MLAT],bearing:follow.h,pitch:pt,zoom:zc});
   }else map.jumpTo({center:[it.ll[1],it.ll[0]],bearing:follow.h});
  }
