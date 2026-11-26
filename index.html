@@ -1013,11 +1013,13 @@ function followTick(t){
  if(!follow)return;
  const it=items.find(i=>i.key===follow.key);
  if(!it){stopFollow();return}
- follow.h+=angDiff(follow.h,it.h)*(follow.cab?0.05:0.06);
+ // lissage du cap indépendant du nombre d'images par seconde
+ const dt=Math.min(1000,Math.max(0,t-(follow.lt||t)));follow.lt=t;
+ follow.h+=angDiff(follow.h,it.h)*(1-Math.exp(-dt/(follow.cab?450:350)));
  if(!map.isEasing()){
-  if(follow.cab){ // caméra de poursuite juste derrière la rame (~40 m de haut) : la rame en bas de l'écran, la ligne qui défile devant
-   // MapLibre (tuiles de 512 px) place la caméra à 1,5 × hauteur d'écran (en pixels) du point visé : on choisit le zoom pour que cette distance fasse 90 m
-   const H=map.getCanvas().clientHeight||800,dist=90,pt=62,pr=pt*Math.PI/180;
+  if(follow.cab){ // caméra de poursuite juste derrière la rame (~65 m de haut) : la rame en bas de l'écran, la ligne qui défile devant
+   // MapLibre (tuiles de 512 px) place la caméra à 1,5 × hauteur d'écran (en pixels) du point visé : on choisit le zoom pour que cette distance fasse 130 m
+   const H=map.getCanvas().clientHeight||800,dist=130,pt=60,pr=pt*Math.PI/180;
    const zc=Math.min(23.5,Math.log2(78271.517*KX*1.5*H/dist));
    const len=it.kind==='bus'?6.4:it.kind==='boat'?12:TOTAL/2,side=it.kind==='boat'?0:(it.kind==='bus'?1.9:SIDE);
    // bas de l'écran = sol à h·tan(pitch − demi-champ) devant la caméra : on y place l'arrière du véhicule
