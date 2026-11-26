@@ -96,6 +96,7 @@ h1{margin:0 0 2px;font-size:22px;line-height:1.1;font-stretch:112%;font-weight:8
 .pbtn{margin-top:8px;min-height:34px;border-radius:8px;border:1px solid #2b3038;background:#232830;color:#fff;font:600 12px Archivo,sans-serif;padding:0 12px;cursor:pointer}
 .pbtn:hover{background:#2f3540}
 .install{display:none;width:100%;margin-top:8px}
+@media(min-width:601px){.follow{left:332px;transform:none;width:min(420px,calc(100vw - 400px))}}
 @media(max-width:600px){.panel{max-height:62vh}.follow{top:10px}.rclock{top:auto;bottom:calc(62vh + 20px);right:10px}}
 .search{position:relative;margin:0 0 4px}
 .search input{width:100%;min-height:42px;border-radius:10px;border:1px solid #2b3038;background:#0f1216;color:inherit;font:16px Archivo,sans-serif;padding:8px 12px}
@@ -1043,7 +1044,7 @@ document.addEventListener('click',e=>{
 // --- Thème
 const themeBtn=document.getElementById('theme');
 const themeLabel=()=>{themeBtn.textContent='Thème : '+({auto:'auto',day:'jour',night:'nuit'}[themeMode])};themeLabel();
-function applyTheme(){const n=wantNight();if(n===NIGHT)return;NIGHT=n;map.setStyle(STYLES[n?'night':'day'])}
+function applyTheme(){const n=wantNight();if(n===NIGHT)return;NIGHT=n;map.setStyle(STYLES[n?'night':'day'],{diff:false})}
 themeBtn.addEventListener('click',()=>{themeMode={auto:'day',day:'night',night:'auto'}[themeMode];try{localStorage.setItem('theme',themeMode)}catch(e){}themeLabel();applyTheme()});
 setInterval(()=>{if(themeMode==='auto')applyTheme()},60000);
 
