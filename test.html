@@ -686,7 +686,7 @@ function render(){
  const bb=map.getBounds(),mx=(bb.getEast()-bb.getWest())*.2,my=(bb.getNorth()-bb.getSouth())*.2;
  const W=bb.getWest()-mx,E=bb.getEast()+mx,S=bb.getSouth()-my,N=bb.getNorth()+my;
  const inView=ll=>!OPT||(ll[1]>=W&&ll[1]<=E&&ll[0]>=S&&ll[0]<=N);
- const hide=follow&&follow.cab?follow.key:null;
+ const hide=null;
  const A=[],B=[],lab=[],BF=[],BL=[];let nb=0,no=0;
  items=[];LINES.forEach(l=>l.count=0);
  for(const it of list){
@@ -1015,12 +1015,12 @@ function followTick(t){
  if(!it){stopFollow();return}
  follow.h+=angDiff(follow.h,it.h)*(follow.cab?0.05:0.06);
  if(!map.isEasing()){
-  if(follow.cab){ // caméra juste derrière et au-dessus de la cabine (~13 m), regard vers l'avant
-   // MapLibre place la caméra à 1,5 × hauteur d'écran (en pixels) du point visé : on choisit le zoom pour que cette distance fasse 40 m
-   const H=map.getCanvas().clientHeight||800,dist=40,pt=71,pr=pt*Math.PI/180;
-   const zc=Math.min(23.5,Math.log2(156543.03*KX*1.5*H/dist));
-   const front=it.kind==='bus'?6.4:it.kind==='boat'?12:TOTAL/2,side=it.kind==='boat'?0:(it.kind==='bus'?1.9:SIDE);
-   const r=follow.h*Math.PI/180,ahead=dist*Math.sin(pr)-front*.2;
+  if(follow.cab){ // caméra juste derrière la rame, à ~9 m de haut : on voit le toit et la voie qui défile devant
+   // MapLibre (tuiles de 512 px) place la caméra à 1,5 × hauteur d'écran (en pixels) du point visé : on choisit le zoom pour que cette distance fasse 30 m
+   const H=map.getCanvas().clientHeight||800,dist=30,pt=72,pr=pt*Math.PI/180;
+   const zc=Math.min(23.5,Math.log2(78271.517*KX*1.5*H/dist));
+   const len=it.kind==='bus'?6.4:it.kind==='boat'?12:TOTAL/2,side=it.kind==='boat'?0:(it.kind==='bus'?1.9:SIDE);
+   const r=follow.h*Math.PI/180,ahead=dist*Math.sin(pr)-len-8;
    map.jumpTo({center:[it.ll[1]+(Math.sin(r)*ahead+Math.cos(r)*side)/MLON,it.ll[0]+(Math.cos(r)*ahead-Math.sin(r)*side)/MLAT],bearing:follow.h,pitch:pt,zoom:zc});
   }else map.jumpTo({center:[it.ll[1],it.ll[0]],bearing:follow.h});
  }
