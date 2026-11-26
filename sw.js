@@ -27,3 +27,4 @@ self.addEventListener('fetch', e => {
     return res;
   }).catch(() => caches.match(e.request, { ignoreSearch: true })));
 });
+// v5 : V³, trajets directs, mode borne, vue cabine
