@@ -457,15 +457,16 @@ function segment(line,A,B){
   const straight=dist(a.xy,b.xy),TOL=0.0007;let best=null;
   shapes.forEach((s,si)=>{
    const pa=project(A,si);if(pa.err>TOL)return;
-   const pb=project(B,si);if(pb.err>TOL||pb.d<=pa.d)return;
-   const len=pb.d-pa.d;if(len>straight*2.5+0.002)return;
-   const score=pa.err+pb.err+(s.line===line?0:0.0002);
+   // les tracés open data sont souvent tous dessinés dans le même sens : on accepte aussi de les parcourir à l'envers
+   const pb=project(B,si);if(pb.err>TOL||pb.d===pa.d)return;
+   const len=pb.d-pa.d;if(Math.abs(len)>straight*2.5+0.002)return;
+   const score=pa.err+pb.err+(s.line===line?0:0.0002)+(len<0?0.00002:0);
    if(!best||score<best.score)best={score,si,d0:pa.d,len};
   });
   if(best)res={kind:'shape',...best};
   else if(BBY[line])res={kind:'line',a:[a.lat,a.lon],b:[b.lat,b.lon]};
   else{ // pas de tracé qui relie les deux arrêts : on échantillonne la droite et on colle chaque point sur la voie
-   const n=Math.max(4,Math.ceil(straight/(25*M))),pts=[];
+   const n=Math.max(4,Math.ceil(straight/(10*M))),pts=[];
    for(let i=0;i<=n;i++){const f=i/n,q=[a.lat+(b.lat-a.lat)*f,a.lon+(b.lon-a.lon)*f],sn=snapLL(q,line,250);pts.push(sn?sn.ll:q)}
    const cum=[0];for(let i=1;i<pts.length;i++)cum.push(cum[i-1]+dist(P(...pts[i-1]),P(...pts[i])));
    res={kind:'poly',pts,cum};
@@ -478,7 +479,7 @@ function posOnSegment(line,A,B,f){
  if(sg.kind==='poly'){const L=sg.cum[sg.cum.length-1],d=L*f;let i=1;while(i<sg.cum.length-1&&sg.cum[i]<d)i++;
   const a=sg.pts[i-1],b=sg.pts[i],g=sg.cum[i]>sg.cum[i-1]?(d-sg.cum[i-1])/(sg.cum[i]-sg.cum[i-1]):0;
   return {ll:[a[0]+(b[0]-a[0])*g,a[1]+(b[1]-a[1])*g],h:headingOf(a,b)}}
- if(sg.kind==='shape'){const s=shapes[sg.si];return {ll:pointAt(s,sg.d0+sg.len*f),h:headingOf(pointAt(s,sg.d0+sg.len*f-0.00005),pointAt(s,sg.d0+sg.len*f+0.00005))}}
+ if(sg.kind==='shape'){const s=shapes[sg.si],d=sg.d0+sg.len*f,e=sg.len<0?-0.00005:0.00005;return {ll:pointAt(s,d),h:headingOf(pointAt(s,d-e),pointAt(s,d+e))}}
  return {ll:[sg.a[0]+(sg.b[0]-sg.a[0])*f,sg.a[1]+(sg.b[1]-sg.a[1])*f],h:headingOf(sg.a,sg.b)};
 }
 // --- Carte 3D
