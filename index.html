@@ -740,6 +740,7 @@ const stopPopup=new maplibregl.Popup({closeOnClick:true,maxWidth:'320px',offset:
 let openStopG=null;stopPopup.on('close',()=>{openStopG=null});
 function badge(id){
  const l=LBY[id];if(l)return '<span class="b" style="background:'+l.color+'">'+l.name+'</span>';
+ if(BBY[id])return '<span class="b bus" style="background:'+BOAT_COLOR+'">BAT'+BBY[id].name+'</span>';
  const bl=busLines.get(id),info=lineInfo[id]||{};
  return '<span class="b bus" style="background:'+(bl?bl.color:BUS_COLOR)+'">'+esc(info.code||id.replace(/^0+/,''))+'</span>';
 }
@@ -779,9 +780,12 @@ function search(q){
  const out=[];
  for(const l of LINES){const sc=score([norm(l.name),'tram '+norm(l.name),'ligne '+norm(l.name)],n);if(sc<(n.length<2?1:4))out.push({type:'tram',id:l.id,sc,ord:0})}
  for(const [id,info] of Object.entries(lineInfo)){
-  if(LBY[id])continue;const c=norm(info.code);
+  if(LBY[id]||BBY[id])continue;const c=norm(info.code);
   const sc=score([c,'bus '+c,'ligne '+c,norm(info.name)],n);if(sc<(n.length<2?2:4))out.push({type:'bus',id,sc,ord:1});
  }
+ for(const b of BOATS){const nm=norm((lineInfo[b.id]||{}).name);
+  const sc=score(['bat','bato','bateau','navette fluviale','bat '+b.name,'bat3 '+b.name,'bato '+b.name,'le bato '+b.name,'bateau '+b.name,nm],n);
+  if(sc<4)out.push({type:'boat',id:b.id,sc,ord:0.5})}
  if(n.length>=2)for(const g of stopGroups.values()){const sc=score([g.n],n);if(sc<4)out.push({type:'stop',id:g.key,sc,ord:g.tram?2:3})}
  out.sort((a,b)=>a.sc-b.sc||a.ord-b.ord||(a.type==='stop'?stopGroups.get(a.id).name.localeCompare(stopGroups.get(b.id).name):0));
  const seenNames=new Set();
@@ -790,9 +794,10 @@ function search(q){
 function resultHtml(r,i){
  let ico,t,s;
  if(r.type==='tram'){const l=LBY[r.id];ico='<span class="ico" style="background:'+l.color+'">'+l.name+'</span>';t='Tram '+l.name;s=l.count+' rame'+(l.count>1?'s':'')+' en ligne'}
+ else if(r.type==='boat'){const b=BBY[r.id];ico='<span class="ico bus" style="background:'+BOAT_COLOR+'">BAT'+b.name+'</span>';t='BAT³ '+b.name;s=esc(titleCase((lineInfo[r.id]||{}).name||'Navette fluviale'))+' · navette fluviale'}
  else if(r.type==='bus'){const info=lineInfo[r.id]||{},bl=busLines.get(r.id);ico='<span class="ico bus" style="background:'+(bl?bl.color:BUS_COLOR)+'">'+esc(info.code)+'</span>';t='Bus '+esc(info.code);s=esc(info.name)+(bl?' · affichée':'')}
  else{const g=stopGroups.get(r.id);ico='<span class="ico stop"></span>';t=esc(g.name);
-  const ls=[...g.lines].sort((a,b)=>(LBY[b]?1:0)-(LBY[a]?1:0));s='Arrêt'+(ls.length?' · ':'')+ls.slice(0,8).map(l=>LBY[l]?'Tram '+LBY[l].name:esc((lineInfo[l]||{}).code||l)).join(', ')+(ls.length>8?'…':'')}
+  const ls=[...g.lines].sort((a,b)=>(LBY[b]?1:0)-(LBY[a]?1:0));s='Arrêt'+(ls.length?' · ':'')+ls.slice(0,8).map(l=>LBY[l]?'Tram '+LBY[l].name:BBY[l]?'BAT³ '+BBY[l].name:esc((lineInfo[l]||{}).code||l)).join(', ')+(ls.length>8?'…':'')}
  return '<li><button type="button" role="option" data-i="'+i+'" class="'+(i===sel?'on':'')+'">'+ico+'<span><span class="t">'+t+'</span><span class="s">'+s+'</span></span></button></li>';
 }
 function showResults(){
@@ -802,6 +807,8 @@ function showResults(){
 function choose(r){
  if(!r)return;qIn.value='';resBox.innerHTML='';qIn.blur();
  if(r.type==='tram'){const l=LBY[r.id];if(!l.on){l.on=true;document.getElementById('c'+l.id).classList.remove('off');drawStatic()}
+  fitPts(shapes.filter(s=>s.line===r.id).flatMap(s=>s.ll.map(([a,b])=>[b,a])))}
+ else if(r.type==='boat'){if(!showBoat)document.getElementById('cboat').click();
   fitPts(shapes.filter(s=>s.line===r.id).flatMap(s=>s.ll.map(([a,b])=>[b,a])))}
  else if(r.type==='bus')addBusLine(r.id,true);
  else openStop(stopGroups.get(r.id),true);
