@@ -462,12 +462,22 @@ function segment(line,A,B){
    const score=pa.err+pb.err+(s.line===line?0:0.0002);
    if(!best||score<best.score)best={score,si,d0:pa.d,len};
   });
-  res=best?{kind:'shape',...best}:{kind:'line',a:[a.lat,a.lon],b:[b.lat,b.lon]};
+  if(best)res={kind:'shape',...best};
+  else if(BBY[line])res={kind:'line',a:[a.lat,a.lon],b:[b.lat,b.lon]};
+  else{ // pas de tracé qui relie les deux arrêts : on échantillonne la droite et on colle chaque point sur la voie
+   const n=Math.max(4,Math.ceil(straight/(25*M))),pts=[];
+   for(let i=0;i<=n;i++){const f=i/n,q=[a.lat+(b.lat-a.lat)*f,a.lon+(b.lon-a.lon)*f],sn=snapLL(q,line,150);pts.push(sn?sn.ll:q)}
+   const cum=[0];for(let i=1;i<pts.length;i++)cum.push(cum[i-1]+dist(P(...pts[i-1]),P(...pts[i])));
+   res={kind:'poly',pts,cum};
+  }
  }
  segCache.set(k,res);return res;
 }
 function posOnSegment(line,A,B,f){
  const sg=segment(line,A,B);if(!sg)return null;
+ if(sg.kind==='poly'){const L=sg.cum[sg.cum.length-1],d=L*f;let i=1;while(i<sg.cum.length-1&&sg.cum[i]<d)i++;
+  const a=sg.pts[i-1],b=sg.pts[i],g=sg.cum[i]>sg.cum[i-1]?(d-sg.cum[i-1])/(sg.cum[i]-sg.cum[i-1]):0;
+  return {ll:[a[0]+(b[0]-a[0])*g,a[1]+(b[1]-a[1])*g],h:headingOf(a,b)}}
  if(sg.kind==='shape'){const s=shapes[sg.si];return {ll:pointAt(s,sg.d0+sg.len*f),h:headingOf(pointAt(s,sg.d0+sg.len*f-0.00005),pointAt(s,sg.d0+sg.len*f+0.00005))}}
  return {ll:[sg.a[0]+(sg.b[0]-sg.a[0])*f,sg.a[1]+(sg.b[1]-sg.a[1])*f],h:headingOf(sg.a,sg.b)};
 }
@@ -686,9 +696,21 @@ const BLEND=3500,MAX_EXTRA=25000,TELEPORT=400*M;
 const vehicles=new Map();let gpsOk=false,gpsAt=0;
 const tangent=(s,d)=>headingOf(pointAt(s,d-5*M),pointAt(s,d+5*M));
 function railCandidates(line,lat,lon){
- const p=P(lat,lon),out=[];
- shapes.forEach((s,si)=>{if(s.line!==line)return;const r=projectPt(p,s);if(r.err<60*M)out.push({si,d:r.d,err:r.err})});
- return out.sort((a,b)=>a.err-b.err);
+ const p=P(lat,lon),own=[],other=[];
+ shapes.forEach((s,si)=>{if(s.boat)return;const r=projectPt(p,s);if(r.err<60*M)(s.line===line?own:other).push({si,d:r.d,err:r.err})});
+ return (own.length?own:other).sort((a,b)=>a.err-b.err);
+}
+// Ramène un point sur la voie la plus proche (celle de la ligne de préférence) : jamais de tram dans les immeubles
+function snapLL(ll,line,maxM){
+ const p=P(ll[0],ll[1]);let best=null;
+ shapes.forEach((s,si)=>{if(s.boat)return;const r=projectPt(p,s);const e=r.err+(s.line===line?0:12*M);if(r.err<(maxM||150)*M&&(!best||e<best.e))best={e,si,d:r.d}});
+ if(!best)return null;const s=shapes[best.si];return {ll:pointAt(s,best.d),h:tangent(s,best.d)};
+}
+const stopSnap=new Map();
+function stopOnRail(ref,line,h){
+ const k=ref+'|'+line;if(!stopSnap.has(k)){const s=stops[ref];stopSnap.set(k,s?snapLL([s.lat,s.lon],line,80):null)}
+ const r=stopSnap.get(k);if(!r)return null;
+ return {ll:r.ll,h:Math.abs(angDiff(r.h,h))>90?(r.h+180)%360:r.h};
 }
 function nextStop(s,d,dir){
  let best=null;
@@ -735,8 +757,8 @@ async function fetchGps(){
    if(agree){pick=c;dir=1;break}
    if(!pick){pick=c;dir=-1}
   }
-  if(!pick){ // hors des tracés connus : position brute
-   vehicles.set(e.vid,{...e,line,si:null,ll:[e.lat,e.lon],h:e.bearing||0,fixTs:e.ts});continue;
+  if(!pick){ // à plus de 60 m de toute voie : rame au dépôt ou position aberrante, on ne la dessine pas
+   vehicles.delete(e.vid);continue;
   }
   const s=shapes[pick.si];
   let spd=e.speed!=null?e.speed*M/1000:null; // unités de tracé par ms
@@ -788,7 +810,8 @@ function locate(j,t){
  for(let i=0;i<c.length;i++){
   if(t>=c[i].arr&&t<=c[i].dep){const n=c[Math.min(i+1,c.length-1)],p=c[Math.max(i-1,0)];
    const a=stops[(i+1<c.length?c[i]:p).ref],b=stops[(i+1<c.length?n:c[i]).ref];
-   return {ll:[stops[c[i].ref].lat,stops[c[i].ref].lon],h:headingOf([a.lat,a.lon],[b.lat,b.lon])}}
+   const h0=headingOf([a.lat,a.lon],[b.lat,b.lon]);
+   return (BBY[j.line]?null:stopOnRail(c[i].ref,j.line,h0))||{ll:[stops[c[i].ref].lat,stops[c[i].ref].lon],h:h0}}
   if(i+1<c.length&&t>c[i].dep&&t<c[i+1].arr)return posOnSegment(j.line,c[i].ref,c[i+1].ref,(t-c[i].dep)/(c[i+1].arr-c[i].dep));
  }
  return null;
