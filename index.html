@@ -836,7 +836,7 @@ function openTram(key){
 }
 function updatePanel(){
  const tot=LINES.reduce((a,l)=>a+l.count,0);
- document.getElementById('total').innerHTML=tot+'<small>tram'+(tot>1?'s':'')+' en ligne</small>';if(tot)panel.classList.remove('loading');
+ document.getElementById('total').innerHTML=tot+'<small>en ligne</small>';document.getElementById('total').title=tot+' tram'+(tot>1?'s':'')+' en ligne';if(tot)panel.classList.remove('loading');
  for(const l of LINES)document.getElementById('n'+l.id).textContent=l.count;
 }
 function setStatus(err){
