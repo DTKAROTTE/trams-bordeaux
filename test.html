@@ -61,8 +61,9 @@ h1{margin:0 0 2px;font-size:22px;line-height:1.1;font-stretch:112%;font-weight:8
 .maplibregl-ctrl-attrib a{color:var(--ink2)}
 #toggle{display:none}
 .layers{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
-.layers .chip{padding:4px 6px;gap:5px}
-.layers .pill{padding:4px 5px}
+.layers .chip{padding:4px 5px;gap:4px}
+.layers .pill{padding:3px 4px;font-size:11px}
+.layers .chip b{font-size:13px}
 .trip label{display:block;font-size:12px;color:var(--mute);margin:6px 0 3px}
 .trip .search{margin:0}
 .trip .row{margin-top:6px}
@@ -313,7 +314,7 @@ function wantNight(){
 function setUi(){document.documentElement.dataset.ui=NIGHT?'dark':'light';const tc=document.querySelector('meta[name=theme-color]');if(tc)tc.content=NIGHT?'#0d0f12':'#f3f4f6'}
 let NIGHT=wantNight();setUi();
 const GLASS=()=>NIGHT?'#f3c76a':'#1b2533';
-const map=new maplibregl.Map({container:'map',style:STYLES[NIGHT?'night':'day'],...HOME,antialias:true,maxPitch:85,fadeDuration:0,attributionControl:false});
+const map=new maplibregl.Map({container:'map',style:STYLES[NIGHT?'night':'day'],...HOME,antialias:true,maxPitch:85,maxZoom:23.5,fadeDuration:0,attributionControl:false});
 // Mesure : #perf affiche le coût du rendu ; #noopt désactive les optimisations (comparaison)
 const OPT=!/noopt/.test(location.hash),PERF=/perf/.test(location.hash);
 map.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:'Données <a href="https://transport.data.gouv.fr/datasets/offres-de-services-bus-tram-et-scolaire-au-format-gtfs-gtfs-rt-siri-lite-1">TBM / Bordeaux Métropole</a>'}));
@@ -365,7 +366,7 @@ function addLayers(){
  map.addLayer({id:'parks-p',type:'symbol',source:'parks',layout:{'text-field':'P','text-font':['Noto Sans Regular'],'text-size':['interpolate',['linear'],['zoom'],11,9,16,14],'text-allow-overlap':true,'text-ignore-placement':true},paint:{'text-color':'#fff'}});
  map.addLayer({id:'parks-n',type:'symbol',source:'parks',minzoom:13,layout:{'text-field':['get','t'],'text-font':['Noto Sans Regular'],'text-size':11,'text-offset':[0,1.5],'text-anchor':'top','text-allow-overlap':true},paint:{'text-color':'#fff','text-halo-color':['get','c'],'text-halo-width':2}});
  map.addSource('bikes',{type:'geojson',data:EMPTY});
- map.addLayer({id:'bikes',type:'circle',source:'bikes',minzoom:12.5,paint:{'circle-radius':['interpolate',['linear'],['zoom'],12.5,3,15,8,17,11],'circle-color':['get','c'],'circle-stroke-color':'#fff','circle-stroke-width':1.2}});
+ map.addLayer({id:'bikes',type:'circle',source:'bikes',minzoom:13.8,paint:{'circle-radius':['interpolate',['linear'],['zoom'],13.8,3.5,15,7,17,11],'circle-color':['get','c'],'circle-stroke-color':'#fff','circle-stroke-width':1.2}});
  map.addLayer({id:'bikes-n',type:'symbol',source:'bikes',minzoom:14.6,layout:{'text-field':['get','t'],'text-font':['Noto Sans Regular'],'text-size':10,'text-allow-overlap':true,'text-ignore-placement':true},paint:{'text-color':'#fff'}});
  map.addSource('me',{type:'geojson',data:EMPTY});
  map.addLayer({id:'me-halo',type:'circle',source:'me',paint:{'circle-radius':22,'circle-color':'#3b82f6','circle-opacity':.18}});
@@ -622,7 +623,7 @@ function tramFeatures(it,scale,out,label,lod){
   const front=k===MODS.length-1,rear=k===0,ch=2.4;
   const ring=[[a+(rear?ch:0),-HW],[b-(front?ch:0),-HW],...(front?[[b,-HW*.55],[b,HW*.55]]:[]),[b-(front?ch:0),HW],[a+(rear?ch:0),HW],...(rear?[[a,HW*.55],[a,-HW*.55]]:[])];
   const poly=[ring.map(([p,q])=>toLL(p,q))];poly[0].push(poly[0][0]);
-  const bands=lod>1?[[.3,1.3,'#2b2f36'],[1.3,2.5,col],[2.5,4.2,GLASS()],[4.2,4.9,col]]:[[.3,2.5,col],[2.5,4.9,GLASS()]];
+  const bands=lod>1?[[.3,1.3,'#2b2f36'],[1.3,2.5,col],[2.5,4.2,GLASS()],[4.2,4.9,col]]:[[.3,2.5,col],[2.5,4.2,GLASS()],[4.2,4.9,col]];
   for(const [b0,h0,c] of bands)out.push({type:'Feature',properties:{k:it.key,c,b:b0*scale,h:h0*scale},geometry:{type:'Polygon',coordinates:poly}});
   if(k===1&&lod>1){ // équipements de toiture
    const m=(a+b)/2,r=[[m-2.6,-1.2],[m+2.6,-1.2],[m+2.6,1.2],[m-2.6,1.2]].map(([p,q])=>toLL(p,q));r.push(r[0]);
@@ -1014,9 +1015,13 @@ function followTick(t){
  if(!it){stopFollow();return}
  follow.h+=angDiff(follow.h,it.h)*(follow.cab?0.05:0.06);
  if(!map.isEasing()){
-  if(follow.cab){ // caméra à hauteur de cabine, posée sur la voie, regard vers l'avant
-   const r=follow.h*Math.PI/180,ahead=28,side=it.kind==='boat'?0:(it.kind==='bus'?1.9:SIDE);
-   map.jumpTo({center:[it.ll[1]+(Math.sin(r)*ahead+Math.cos(r)*side)/MLON,it.ll[0]+(Math.cos(r)*ahead-Math.sin(r)*side)/MLAT],bearing:follow.h,pitch:80,zoom:19.2});
+  if(follow.cab){ // caméra à hauteur de cabine (~5 m), posée à l'avant du véhicule, regard vers l'avant
+   // MapLibre place la caméra à 1,5 × hauteur d'écran (en pixels) du point visé : on choisit le zoom pour que cette distance fasse 24 m
+   const H=map.getCanvas().clientHeight||800,dist=24,pt=77,pr=pt*Math.PI/180;
+   const zc=Math.min(23.5,Math.log2(156543.03*KX*1.5*H/dist));
+   const front=it.kind==='bus'?6.4:it.kind==='boat'?12:TOTAL/2,side=it.kind==='boat'?0:(it.kind==='bus'?1.9:SIDE);
+   const r=follow.h*Math.PI/180,ahead=front+dist*Math.sin(pr);
+   map.jumpTo({center:[it.ll[1]+(Math.sin(r)*ahead+Math.cos(r)*side)/MLON,it.ll[0]+(Math.cos(r)*ahead-Math.sin(r)*side)/MLAT],bearing:follow.h,pitch:pt,zoom:zc});
   }else map.jumpTo({center:[it.ll[1],it.ll[0]],bearing:follow.h});
  }
  if(t-follow.ui<1000)return;follow.ui=t;
@@ -1214,7 +1219,7 @@ async function computeTrip(){
  }
  opts.sort((a,b)=>a.arr-b.arr);
  trip.busy=false;trip.opts=opts.slice(0,8);
- trip.msg=opts.length?'':'Ligne'+(lines.length>1?'s':'')+' directe'+(lines.length>1?'s':'')+' : '+lines.map(l=>LBY[l]?'Tram '+LBY[l].name:BBY[l]?'BAT³ '+BBY[l].name:'Bus '+((lineInfo[l]||{}).code||l)).join(', ')+'. Aucun départ annoncé dans ce sens pour le moment.';
+ trip.msg=opts.length?'':'Ligne'+(lines.length>1?'s':'')+' directe'+(lines.length>1?'s':'')+' : '+lines.map(l=>LBY[l]?'Tram '+LBY[l].name:BBY[l]?'BAT³ '+BBY[l].name:'Bus '+((lineInfo[l]||{}).code||l)).join(', ')+'. Aucun départ annoncé de '+A.name+' vers '+B.name+' pour le moment : certaines lignes ne desservent ces deux arrêts que dans l\'autre sens.';
  updateTrip();
 }
 function updateTrip(){
@@ -1242,6 +1247,7 @@ async function kioskRefresh(){
  document.getElementById('klist').innerHTML=d.length?d.map(x=>{const L=lineLook(x.line),mn=Math.round((x.t-now)/60000);
   return '<li><span class="kb'+(L.r?' r':'')+'" style="background:'+L.c+'">'+esc(L.t)+'</span><span class="kd">'+esc(titleCase(x.dest))+'</span><span class="kt'+(x.rt?'':' th')+'">'+(mn<=0?'<small>à l\'approche</small>':mn<60?mn+'<small> min</small>':esc(fmt(x.t)))+'</span></li>'}).join('')
   :'<li class="kempty">Aucun départ annoncé pour le moment.</li>';
+ const kl=document.getElementById('klist'),kb=kl.getBoundingClientRect().bottom;for(const li of kl.children)li.style.visibility=li.getBoundingClientRect().bottom>kb+1?'hidden':'';
  document.getElementById('kfoot').textContent='Mis à jour à '+new Date(now).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+' · données TBM en temps réel · en gris : horaire théorique';
 }
 function openKiosk(g){
