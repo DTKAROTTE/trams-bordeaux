@@ -184,7 +184,7 @@ h1{margin:0 0 2px;font-size:22px;line-height:1.1;font-stretch:112%;font-weight:8
 .tabs svg{width:18px;height:18px}
 .tabs .cnt{position:absolute;top:3px;right:5px;margin:0}
 .panel>.pbody{flex:0 1 auto}
-.pbody{min-height:0;overflow:auto;overscroll-behavior:contain;margin:0 -4px;padding:0 4px}
+.pbody{min-height:0;overflow:auto;overflow-x:hidden;overscroll-behavior:contain;margin:0 -4px;padding:0 4px}
 .panel.tabopen #phome{display:none}
 .sheet{margin:0;border-top:0;padding-top:0}
 .shd{display:flex;align-items:center;justify-content:space-between;margin:0 0 6px}
@@ -466,7 +466,7 @@ function segment(line,A,B){
   else if(BBY[line])res={kind:'line',a:[a.lat,a.lon],b:[b.lat,b.lon]};
   else{ // pas de tracé qui relie les deux arrêts : on échantillonne la droite et on colle chaque point sur la voie
    const n=Math.max(4,Math.ceil(straight/(25*M))),pts=[];
-   for(let i=0;i<=n;i++){const f=i/n,q=[a.lat+(b.lat-a.lat)*f,a.lon+(b.lon-a.lon)*f],sn=snapLL(q,line,150);pts.push(sn?sn.ll:q)}
+   for(let i=0;i<=n;i++){const f=i/n,q=[a.lat+(b.lat-a.lat)*f,a.lon+(b.lon-a.lon)*f],sn=snapLL(q,line,250);pts.push(sn?sn.ll:q)}
    const cum=[0];for(let i=1;i<pts.length;i++)cum.push(cum[i-1]+dist(P(...pts[i-1]),P(...pts[i])));
    res={kind:'poly',pts,cum};
   }
@@ -708,7 +708,7 @@ function snapLL(ll,line,maxM){
 }
 const stopSnap=new Map();
 function stopOnRail(ref,line,h){
- const k=ref+'|'+line;if(!stopSnap.has(k)){const s=stops[ref];stopSnap.set(k,s?snapLL([s.lat,s.lon],line,80):null)}
+ const k=ref+'|'+line;if(!stopSnap.has(k)){const s=stops[ref];stopSnap.set(k,s?snapLL([s.lat,s.lon],line,250):null)}
  const r=stopSnap.get(k);if(!r)return null;
  return {ll:r.ll,h:Math.abs(angDiff(r.h,h))>90?(r.h+180)%360:r.h};
 }
