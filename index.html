@@ -59,7 +59,6 @@ h1{margin:0 0 2px;font-size:22px;line-height:1.1;font-stretch:112%;font-weight:8
 .pop .m{color:var(--mute);font-size:13px}
 .maplibregl-ctrl-attrib{background:var(--panel)!important;color:var(--mute)}
 .maplibregl-ctrl-attrib a{color:var(--ink2)}
-#toggle{display:none}
 .layers{grid-template-columns:repeat(4,minmax(0,1fr));gap:5px}
 .layers .chip{padding:4px 5px;gap:4px}
 .layers .pill{padding:3px 4px;font-size:11px}
@@ -133,8 +132,6 @@ h1{margin:0 0 2px;font-size:22px;line-height:1.1;font-stretch:112%;font-weight:8
 .pbtn{margin-top:8px;min-height:34px;border-radius:8px;border:1px solid var(--line2);background:var(--hover);color:var(--ink);font:600 12px Archivo,sans-serif;padding:0 12px;cursor:pointer}
 .pbtn:hover{background:var(--hover)}
 .install{display:none;width:100%;margin-top:8px}
-@media(min-width:601px){.follow{left:332px;transform:none;width:min(420px,calc(100vw - 400px))}}
-@media(max-width:600px){.panel{max-height:62vh}.follow{top:10px}.rclock{top:auto;bottom:calc(62vh + 20px);right:10px}}
 .search{position:relative;margin:0 0 4px}
 .search input{width:100%;min-height:42px;border-radius:10px;border:1px solid var(--line2);background:var(--field);color:inherit;font:16px Archivo,sans-serif;padding:8px 12px}
 .search input:focus{outline:2px solid var(--ink);outline-offset:0}
@@ -161,50 +158,173 @@ h1{margin:0 0 2px;font-size:22px;line-height:1.1;font-stretch:112%;font-weight:8
 .dep .w.th{color:var(--mute);font-weight:500}
 .dep .b{flex:none;min-width:24px;height:22px;border-radius:11px;display:grid;place-items:center;padding:0 6px;font-weight:800;font-size:12px;color:#fff}
 .dep .b.bus{border-radius:5px}
+
+/* ---------- Interface v6 : panneau repliable, tiroir mobile, menu Affichage, contrôles sur la carte */
+.panel{display:flex;flex-direction:column;overflow:visible;padding:12px 14px 12px;gap:10px}
+.panel>*{flex:none}
+.phd{display:flex;align-items:center;gap:10px}
+.ttl{flex:1;min-width:0}
+.ttl h1{font-size:17px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.live{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mute);margin-top:2px;min-width:0}
+.live #status{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0;font-size:12px}
+.ld{flex:none;width:8px;height:8px;border-radius:50%;background:var(--mute)}
+.ld.ok{background:#22c55e;box-shadow:0 0 0 0 rgba(34,197,94,.6);animation:pulse 2s infinite}
+.ld.bad{background:#f59e0b}
+@keyframes pulse{70%{box-shadow:0 0 0 6px rgba(34,197,94,0)}100%{box-shadow:0 0 0 0 rgba(34,197,94,0)}}
+.phd .big{font-size:26px;text-align:right;line-height:1}
+.phd .big small{display:block;margin:2px 0 0;font-size:11px}
+.ibtn{flex:none;display:grid;place-items:center;width:36px;height:36px;border-radius:10px;border:1px solid var(--line2);background:var(--card);color:var(--ink);cursor:pointer;padding:0}
+.ibtn:hover{background:var(--hover)}
+.ibtn svg{width:18px;height:18px;transition:transform .2s}
+.panel.min #toggle svg{transform:rotate(180deg)}
+.panel .search{margin:0}
+.panel .lines{margin:0 0 8px}
+.tabs{margin:0;gap:4px}
+.tabs button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;min-height:48px;position:relative;font-size:11px}
+.tabs svg{width:18px;height:18px}
+.tabs .cnt{position:absolute;top:3px;right:5px;margin:0}
+.panel>.pbody{flex:0 1 auto}
+.pbody{min-height:0;overflow:auto;overscroll-behavior:contain;margin:0 -4px;padding:0 4px}
+.panel.tabopen #phome{display:none}
+.sheet{margin:0;border-top:0;padding-top:0}
+.shd{display:flex;align-items:center;justify-content:space-between;margin:0 0 6px}
+.shd b{font-size:14px}
+.hint{margin:4px 0 0;font-size:12px;color:var(--mute)}
+.panel.min .tabs,.panel.min .pbody{display:none}
+.grab{display:none}
+.panel.loading .lines .chip b,.panel.loading #total{color:transparent;background:linear-gradient(90deg,var(--line) 0,var(--hover) 50%,var(--line) 100%) 0 0/200% 100%;border-radius:6px;animation:sk 1.2s linear infinite}
+.panel.loading #total{min-width:44px;min-height:28px}
+@keyframes sk{to{background-position:-200% 0}}
+.sheet>*{animation:fadein .18s ease-out}
+@keyframes fadein{from{opacity:0;transform:translateY(4px)}}
+/* contrôles ajoutés à la carte */
+.mctl button{font:800 12px Archivo,sans-serif;color:#333}
+.mctl button svg{width:17px;height:17px;display:block;margin:auto}
+.mctl button[aria-expanded=true]{background:#e8eaed}
+:root[data-ui=dark] .maplibregl-ctrl-group{background:#20242b}
+:root[data-ui=dark] .maplibregl-ctrl-group button+button{border-top-color:#333a44}
+:root[data-ui=dark] .mctl button{color:#e8eaed}
+:root[data-ui=dark] .mctl button[aria-expanded=true]{background:#2d333c}
+:root[data-ui=dark] .maplibregl-ctrl-group button .maplibregl-ctrl-icon{filter:invert(1)}
+/* menu Affichage */
+.disp{position:fixed;z-index:13;right:54px;top:14px;width:290px;max-width:calc(100vw - 70px);max-height:calc(100vh - 28px);overflow:auto;background:var(--panel);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:14px;padding:12px 14px;box-shadow:0 10px 30px rgba(0,0,0,.45);font-size:13px}
+:root[data-ui=light] .disp{box-shadow:0 10px 30px rgba(20,30,40,.18)}
+.disp[hidden]{display:none}
+.dh{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.dh b{font-size:15px}
+.disp .ibtn{width:32px;height:32px;font-size:18px}
+.disp h5{margin:12px 0 6px;font-size:12px;color:var(--mute);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.disp .layers{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:0}
+.disp .layers .chip{padding:4px 8px;gap:8px}
+.disp .layers .chip .lbl{font-size:12px}
+.disp .opt{margin-top:6px}
+.disp .sel{width:100%;text-align:left;padding:0 10px}
+.lg{display:grid;gap:5px;font-size:12px;color:var(--ink2)}
+.lg div{display:flex;align-items:center;gap:8px}
+.lg i{flex:none;display:inline-block;width:16px;height:9px;border-radius:2px;background:#a0329a}
+.lg i.es{opacity:.45}
+.lg i.o{width:9px;height:9px;border-radius:50%}
+.lg .sw{display:flex;gap:3px}
+.disp .install{margin-top:10px}
+/* bandeau d'erreur */
+.banner{position:fixed;z-index:14;left:50%;transform:translateX(-50%);bottom:28px;max-width:min(560px,calc(100vw - 28px));background:var(--warnbg);color:var(--warnink);border:1px solid rgba(0,0,0,.12);border-radius:12px;padding:10px 14px;font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.35);cursor:pointer}
+.banner[hidden]{display:none}
+/* barre de suivi */
+.follow{padding:10px 12px 10px}
+.fh{display:flex;align-items:center;gap:10px}
+.fb{flex:none;display:grid;place-items:center;min-width:34px;height:34px;padding:0 6px;border-radius:17px;color:#fff;font-weight:800;font-size:15px}
+.fb.sq{border-radius:8px}
+.fm{flex:1;min-width:0}
+.fm b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fm .m{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fa{flex:none;display:flex;gap:4px}
+.fa button{width:34px;height:34px;display:grid;place-items:center;border-radius:9px;border:1px solid var(--line2);background:var(--card);color:var(--ink);cursor:pointer;padding:0}
+.fa button:hover{background:var(--hover)}
+.fa button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.fa svg{width:16px;height:16px}
+.fnext{display:flex;justify-content:space-between;gap:8px;margin-top:8px;font-size:13px}
+.fnext b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.fnext span{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fp{height:4px;border-radius:2px;background:var(--line2);margin-top:6px;overflow:hidden}
+.fp i{display:block;height:100%;border-radius:2px}
+.follow ol{margin-top:6px;color:var(--ink2)}
+.follow.flash{animation:flash .3s}
+@keyframes flash{50%{transform:translateX(-4px)}}
+@media(min-width:601px){.follow{left:328px;transform:none;width:min(440px,calc(100vw - 400px))}}
+/* ---------- Mobile : le panneau devient un tiroir qui monte du bas */
 @media(max-width:600px){
- .panel{top:auto;bottom:10px;left:10px;right:10px;width:auto;padding:12px}
- .big{font-size:30px}
- .panel.min .hide{display:none}
- #toggle{display:block;position:absolute;right:10px;top:8px;background:none;border:0;color:var(--mute);font:inherit;min-height:36px;cursor:pointer}
+ .panel{top:auto;left:0;right:0;bottom:0;width:auto;max-width:none;max-height:none;height:var(--sh,200px);border-radius:18px 18px 0 0;border-bottom:0;padding:0 12px calc(10px + env(safe-area-inset-bottom));gap:8px;transition:height .25s ease}
+ .panel.drag{transition:none}
+ .grab{display:flex;justify-content:center;align-items:center;height:22px;margin:0 -12px -6px;cursor:grab;touch-action:none}
+ .grab span{width:40px;height:5px;border-radius:3px;background:var(--line2)}
+ .phd{touch-action:none}
+ .phd .big{font-size:24px}
+ .pbody{flex:1}
+ .panel.min .tabs,.panel.min .pbody{display:revert}
+ .panel .pbody{display:block}
+ .follow{top:10px}
+ .rclock{top:auto;bottom:calc(var(--sh,200px) + 10px);right:10px}
+ .disp{right:10px;left:10px;top:10px;width:auto;max-width:none;max-height:calc(100vh - var(--sh,200px) - 20px)}
+ .banner{bottom:calc(var(--sh,200px) + 10px)}
+ .maplibregl-ctrl-bottom-right,.maplibregl-ctrl-bottom-left{bottom:var(--sh,200px)}
+ .maplibregl-ctrl-top-right{top:auto;bottom:calc(var(--sh,200px) + 40px);transition:bottom .25s}
+ .follow:not([hidden])~.disp{top:auto}
 }
 </style>
 </head>
 <body>
 <div id="map"></div>
-<div class="panel" id="panel">
- <button id="toggle" type="button">Réduire</button>
- <h1>Trams de Bordeaux</h1>
- <p class="sub">Trams, bus et BAT³ en 3D, en direct, d'après les données ouvertes TBM</p>
+<div class="panel loading" id="panel">
+ <div class="grab" id="grab" aria-hidden="true"><span></span></div>
+ <div class="phd" id="phd">
+  <div class="ttl"><h1>Trams de Bordeaux</h1><div class="live"><span class="ld" id="ld"></span><span class="status" id="status">Chargement de la carte…</span></div></div>
+  <div class="big" id="total" aria-live="polite"></div>
+  <button id="toggle" type="button" class="ibtn" aria-expanded="true" aria-controls="pbody" title="Replier le panneau"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 15 6-6 6 6"/></svg></button>
+ </div>
  <div class="search" role="search">
   <input id="q" type="search" placeholder="Ligne ou arrêt (ex. A, 15, Quinconces)" autocomplete="off" aria-label="Rechercher une ligne ou un arrêt" aria-controls="res">
   <ul class="res" id="res" role="listbox"></ul>
  </div>
- <div class="big" id="total">…<small>trams en ligne</small></div>
- <div class="hide">
-  <div class="lines" id="lines"></div>
-  <div class="blines" id="blines"></div>
-  <div class="lines layers">
-   <button type="button" class="chip" id="cbus" aria-pressed="true"><span class="pill">Bus</span><b id="nbus">0</b></button>
-   <button type="button" class="chip" id="cboat" aria-pressed="true"><span class="pill" style="background:#0ea5c6">BAT³</span><b id="nboat">0</b></button>
-   <button type="button" class="chip" id="cpark" aria-pressed="true"><span class="pill" style="background:#3f4a57">P+R</span><b id="npark">0</b></button>
-   <button type="button" class="chip" id="cbike" aria-pressed="true" title="Vélos V³ disponibles"><span class="pill" style="background:#2bb673">V³</span><b id="nbike">0</b></button>
-  </div>
-  <div class="legend"><span><i></i>Position GPS</span><span><i class="es"></i>Estimée (horaires)</span></div>
-  <label class="opt"><input type="checkbox" id="busnet"> Afficher tout le réseau de bus (tracés)</label>
-  <label class="opt"><input type="checkbox" id="theo"> Afficher aussi les courses théoriques (sans signal, souvent fantômes)</label>
-  <div class="row"><button class="btn" id="view" type="button">Vue à plat</button><button class="btn" id="home" type="button">Recentrer</button><select class="btn sel" id="theme" aria-label="Thème de l'affichage"><option value="device">Thème : appareil</option><option value="light">Clair</option><option value="dark">Sombre</option><option value="sun">Selon le soleil</option></select></div>
-  <button class="btn install" id="install" type="button">Installer l'appli sur cet appareil</button>
- </div>
- <div class="status" id="status">Chargement de la carte…</div>
  <div class="tabs" role="tablist">
-  <button type="button" role="tab" data-tab="trafic" aria-selected="false">Trafic <span class="cnt" id="ntraf"></span></button>
-  <button type="button" role="tab" data-tab="near" aria-selected="false">Autour</button>
-  <button type="button" role="tab" data-tab="trip" aria-selected="false">Trajet</button>
-  <button type="button" role="tab" data-tab="stats" aria-selected="false">Stats</button>
-  <button type="button" role="tab" data-tab="replay" aria-selected="false">Rejouer</button>
+  <button type="button" role="tab" data-tab="trafic" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 2 20h20L12 3z"/><path d="M12 10v4M12 17h.01"/></svg>Trafic<span class="cnt" id="ntraf"></span></button>
+  <button type="button" role="tab" data-tab="near" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>Autour</button>
+  <button type="button" role="tab" data-tab="trip" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="18" r="2.5"/><circle cx="18" cy="6" r="2.5"/><path d="M8.5 18H15a3 3 0 0 0 0-6H9a3 3 0 0 1 0-6h6.5"/></svg>Trajet</button>
+  <button type="button" role="tab" data-tab="stats" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M5 20V11M12 20V4M19 20v-6"/></svg>Stats</button>
+  <button type="button" role="tab" data-tab="replay" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg>Rejouer</button>
  </div>
- <div class="sheet" id="sheet" hidden></div>
+ <div class="pbody" id="pbody">
+  <div id="phome">
+   <div class="lines" id="lines"></div>
+   <div class="blines" id="blines"></div>
+   <p class="hint">Touchez une rame pour la suivre et voir ses prochains arrêts, ou un arrêt pour ses départs. Calques, thème et légende : bouton <b>Affichage</b> sur la carte.</p>
+  </div>
+  <div class="sheet" id="sheet" hidden></div>
+ </div>
 </div>
+<div class="disp" id="disp" hidden role="dialog" aria-label="Affichage">
+ <div class="dh"><b>Affichage</b><button type="button" class="ibtn" id="dclose" aria-label="Fermer">×</button></div>
+ <h5>Calques</h5>
+ <div class="layers">
+  <button type="button" class="chip" id="cbus" aria-pressed="true"><span class="pill">Bus</span><b id="nbus">0</b><span class="lbl">véhicules</span></button>
+  <button type="button" class="chip" id="cboat" aria-pressed="true"><span class="pill" style="background:#0ea5c6">BAT³</span><b id="nboat">0</b><span class="lbl">bateaux</span></button>
+  <button type="button" class="chip" id="cpark" aria-pressed="true"><span class="pill" style="background:#3f4a57">P+R</span><b id="npark">0</b><span class="lbl">parkings</span></button>
+  <button type="button" class="chip" id="cbike" aria-pressed="true" title="Vélos V³ disponibles"><span class="pill" style="background:#2bb673">V³</span><b id="nbike">0</b><span class="lbl">vélos</span></button>
+ </div>
+ <label class="opt"><input type="checkbox" id="busnet"> Afficher tout le réseau de bus (tracés)</label>
+ <label class="opt"><input type="checkbox" id="theo"> Afficher aussi les courses théoriques (sans signal, souvent fantômes)</label>
+ <h5>Thème</h5>
+ <select class="btn sel" id="theme" aria-label="Thème de l'affichage"><option value="device">Comme l'appareil</option><option value="light">Clair</option><option value="dark">Sombre</option><option value="sun">Selon le soleil</option></select>
+ <h5>Légende</h5>
+ <div class="lg">
+  <div><i></i>Rame suivie par GPS</div>
+  <div><i class="es"></i>Position estimée d'après les horaires</div>
+  <div><i class="o" style="background:#ffb020"></i>Perturbation sur la ligne (onglet Trafic)</div>
+  <div><span class="sw"><i class="o" style="background:#2bb673"></i><i class="o" style="background:#f59e0b"></i><i class="o" style="background:#ef4444"></i><i class="o" style="background:#6b7280"></i></span>V³ : 3 vélos ou plus · 1–2 · vide · hors service</div>
+  <div><span class="sw"><i class="o" style="background:#16a34a"></i><i class="o" style="background:#f59e0b"></i><i class="o" style="background:#ef4444"></i></span>P+R : places libres · presque plein · complet</div>
+ </div>
+ <button class="btn install" id="install" type="button">Installer l'appli sur cet appareil</button>
+</div>
+<div class="banner" id="banner" hidden role="alert" title="Toucher pour masquer"></div>
 <div class="follow" id="follow" hidden></div>
 <div class="rclock" id="rclock" hidden></div>
 <div class="kiosk" id="kiosk" hidden role="dialog" aria-label="Mode borne">
@@ -319,6 +439,12 @@ const map=new maplibregl.Map({container:'map',style:STYLES[NIGHT?'night':'day'],
 const OPT=!/noopt/.test(location.hash),PERF=/perf/.test(location.hash);
 map.addControl(new maplibregl.AttributionControl({compact:true,customAttribution:'Données <a href="https://transport.data.gouv.fr/datasets/offres-de-services-bus-tram-et-scolaire-au-format-gtfs-gtfs-rt-siri-lite-1">TBM / Bordeaux Métropole</a>'}));
 map.addControl(new maplibregl.NavigationControl({visualizePitch:true}),'top-right');
+// Boutons ajoutés sous le zoom : menu Affichage, vue à plat / 3D, recentrer
+map.addControl({onAdd(){const d=document.createElement('div');d.className='maplibregl-ctrl maplibregl-ctrl-group mctl';
+ d.innerHTML='<button type="button" id="bdisp" title="Affichage : calques, thème, légende" aria-label="Affichage" aria-expanded="false" aria-controls="disp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5z"/><path d="m3 13 9 5 9-5"/></svg></button>'+
+ '<button type="button" id="view" title="Passer en vue à plat" aria-label="Passer en vue à plat">2D</button>'+
+ '<button type="button" id="home" title="Recentrer sur Bordeaux" aria-label="Recentrer sur Bordeaux"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></button>';
+ return d},onRemove(){}},'top-right');
 const EMPTY={type:'FeatureCollection',features:[]};
 const FC=f=>({type:'FeatureCollection',features:f});
 // Les données de chaque couche sont gardées pour être réappliquées après un changement de thème
@@ -360,7 +486,7 @@ function addLayers(){
  map.addSource('bus',{type:'geojson',data:EMPTY,maxzoom:OPT?15:18});
  map.addLayer({id:'bus',type:'fill-extrusion',source:'bus',paint:{...ext,'fill-extrusion-opacity':1}});
  map.addSource('bus-labels',{type:'geojson',data:EMPTY,maxzoom:OPT?15:18});
- map.addLayer({id:'bus-labels',type:'symbol',source:'bus-labels',minzoom:13.5,layout:{'text-field':['get','t'],'text-font':['Noto Sans Regular'],'text-size':11,'text-offset':[0,-1.5],'text-allow-overlap':true,'text-ignore-placement':true},paint:{'text-color':'#fff','text-halo-color':['get','c'],'text-halo-width':2.5}});
+ map.addLayer({id:'bus-labels',type:'symbol',source:'bus-labels',minzoom:13.5,layout:{'text-field':['get','t'],'text-font':['Noto Sans Regular'],'text-size':11,'text-offset':[0,-1.5],'text-allow-overlap':false,'text-ignore-placement':true,'text-padding':1},paint:{'text-color':'#fff','text-halo-color':['get','c'],'text-halo-width':2.5}});
  map.addSource('parks',{type:'geojson',data:EMPTY});
  map.addLayer({id:'parks',type:'circle',source:'parks',paint:{'circle-radius':['interpolate',['linear'],['zoom'],11,6,16,11],'circle-color':['get','c'],'circle-stroke-color':'#fff','circle-stroke-width':1.5}});
  map.addLayer({id:'parks-p',type:'symbol',source:'parks',layout:{'text-field':'P','text-font':['Noto Sans Regular'],'text-size':['interpolate',['linear'],['zoom'],11,9,16,14],'text-allow-overlap':true,'text-ignore-placement':true},paint:{'text-color':'#fff'}});
@@ -372,7 +498,7 @@ function addLayers(){
  map.addLayer({id:'me-halo',type:'circle',source:'me',paint:{'circle-radius':22,'circle-color':'#3b82f6','circle-opacity':.18}});
  map.addLayer({id:'me',type:'circle',source:'me',paint:{'circle-radius':7,'circle-color':'#3b82f6','circle-stroke-color':'#fff','circle-stroke-width':2.5}});
  map.addSource('labels',{type:'geojson',data:EMPTY,maxzoom:OPT?15:18});
- map.addLayer({id:'labels',type:'symbol',source:'labels',layout:{'text-field':['get','t'],'text-font':['Noto Sans Regular'],'text-size':12,'text-offset':[0,-1.6],'text-allow-overlap':true,'text-ignore-placement':true},paint:{'text-color':'#fff','text-halo-color':['get','c'],'text-halo-width':3}});
+ map.addLayer({id:'labels',type:'symbol',source:'labels',layout:{'text-field':['get','t'],'text-font':['Noto Sans Regular'],'text-size':12,'text-offset':[0,-1.6],'text-allow-overlap':false,'text-ignore-placement':true,'text-padding':1},paint:{'text-color':'#fff','text-halo-color':['get','c'],'text-halo-width':3}});
 }
 
 // --- Données statiques : arrêts et tracés
@@ -710,13 +836,20 @@ function openTram(key){
 }
 function updatePanel(){
  const tot=LINES.reduce((a,l)=>a+l.count,0);
- document.getElementById('total').innerHTML=tot+'<small>tram'+(tot>1?'s':'')+' en ligne</small>';
+ document.getElementById('total').innerHTML=tot+'<small>tram'+(tot>1?'s':'')+' en ligne</small>';if(tot)panel.classList.remove('loading');
  for(const l of LINES)document.getElementById('n'+l.id).textContent=l.count;
 }
 function setStatus(err){
- st.className='status'+(err?' err':'');
- st.textContent=err||(gpsOk?vehicles.size+' rames et '+buses.size+' bus suivis par GPS · mis à jour à '+new Date(gpsAt).toLocaleTimeString('fr-FR'):'GPS indisponible, positions estimées d\'après les horaires');
+ const ld=document.getElementById('ld');
+ ld.className='ld '+(err?'bad':gpsOk?'ok':'bad');
+ st.className='status';
+ st.textContent=err?'Problème de données':gpsOk?'En direct · '+new Date(gpsAt).toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+' · '+vehicles.size+' rames, '+buses.size+' bus GPS':'GPS indisponible : positions estimées';
+ st.title=err||(gpsOk?vehicles.size+' rames et '+buses.size+' bus suivis par GPS · mis à jour à '+new Date(gpsAt).toLocaleTimeString('fr-FR'):'GPS indisponible, positions estimées d\'après les horaires');
+ showBanner(err||(gpsOk?'':'Le GPS des véhicules ne répond pas : les positions affichées sont estimées d\'après les horaires.'));
 }
+let bannerOff='';
+function showBanner(msg){const b=document.getElementById('banner');if(!msg||msg===bannerOff){b.hidden=true;return}b.textContent=msg;b.hidden=false}
+document.getElementById('banner').addEventListener('click',e=>{bannerOff=e.currentTarget.textContent;e.currentTarget.hidden=true});
 
 // --- Lignes de bus affichées (tracé chargé à la demande)
 const BUS_PAL=['#22c55e','#eab308','#f97316','#06b6d4','#f43f5e','#84cc16','#a78bfa','#14b8a6','#fde047','#fb923c'];
@@ -1004,10 +1137,24 @@ function nearHtml(){
 let follow=null;const fbar=document.getElementById('follow');
 function startFollow(key){
  follow={key,h:map.getBearing(),ui:0,cab:false};popup.remove();
+ if(isMobile())setSnap('peek');openDisp&&!disp.hidden&&openDisp(false);
  map.easeTo({zoom:Math.max(map.getZoom(),16.2),pitch:62,duration:900});
  fbar.hidden=false;
 }
 function stopFollow(){follow=null;fbar.hidden=true}
+// rames de la même ligne et du même sens, de la plus en retard sur le parcours à la plus avancée
+function followStep(d){
+ if(!follow)return;const cur=items.find(i=>i.key===follow.key);if(!cur)return;
+ const tramLike=k=>k==='gps'||k==='es',now=Date.now();
+ const same=items.filter(i=>(i.kind===cur.kind||(tramLike(i.kind)&&tramLike(cur.kind)))&&i.line===cur.line&&(!cur.j||!i.j||i.j.dest===cur.j.dest));
+ const prog=i=>{if(!i.j||!i.j.calls.length)return 0;const c=i.j.calls;return c.filter(x=>x.arr<=now).length/c.length};
+ same.sort((a,b)=>prog(a)-prog(b)||(a.key<b.key?-1:1));
+ const k=same.findIndex(i=>i.key===cur.key),nx=same[k+d];
+ if(!nx){fbar.classList.remove('flash');void fbar.offsetWidth;fbar.classList.add('flash');return}
+ follow.key=nx.key;follow.ui=0;follow.h=nx.h;
+}
+{let x0=null;fbar.addEventListener('pointerdown',e=>{if(!e.target.closest('button'))x0=e.clientX});
+ fbar.addEventListener('pointerup',e=>{if(x0==null)return;const dx=e.clientX-x0;x0=null;if(Math.abs(dx)>50)followStep(dx<0?1:-1)})}
 map.on('dragstart',()=>{if(follow)stopFollow()});
 function followTick(t){
  if(!follow)return;
@@ -1028,12 +1175,22 @@ function followTick(t){
   }else map.jumpTo({center:[it.ll[1],it.ll[0]],bearing:follow.h});
  }
  if(t-follow.ui<1000)return;follow.ui=t;
- const col=it.kind==='bus'?(it.color||BUS_COLOR):it.kind==='boat'?BOAT_COLOR:(LBY[it.line]||{}).color;
+ const L=lineLook(it.line),col=L.c;
  const dest=it.j?it.j.dest:it.v&&it.v.label?titleCase(it.v.label):'';
- let h='<div class="hd"><b style="color:'+col+'">'+esc(itemTitle(it))+(dest?' → '+esc(dest):'')+'</b>'+(it.v&&it.v.speed!=null?'<span class="m">'+Math.round(it.v.speed*3.6)+' km/h</span>':'')+'<button type="button" class="stop" data-act="cab">'+(follow.cab?'Vue extérieure':'Vue cabine')+'</button><button type="button" class="stop" data-act="unfollow">Arrêter</button></div>';
- const nx=it.j?it.j.calls.filter(c=>c.arr>t).slice(0,4):[];
- if(nx.length)h+='<ol>'+nx.map(c=>'<li><span>'+esc(stops[c.ref].name)+'</span><span>'+esc(minsTxt(c.arr))+'</span></li>').join('')+'</ol>';
- else if(it.kind==='bus'&&it.v.stop&&stops['bordeaux:StopPoint:BP:'+it.v.stop+':LOC'])h+='<ol><li><span>Prochain arrêt : '+esc(stops['bordeaux:StopPoint:BP:'+it.v.stop+':LOC'].name)+'</span><span></span></li></ol>';
+ const spd=it.v&&it.v.speed!=null?Math.round(it.v.speed*3.6)+' km/h':'';
+ const IC={prev:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 6-6 6 6 6"/></svg>',next:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>',cab:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M2 12s3.6-6 10-6 10 6 10 6-3.6 6-10 6S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></svg>',x:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>'};
+ let h='<div class="fh"><span class="fb'+(it.kind==='bus'?' sq':'')+'" style="background:'+col+'">'+esc(L.t)+'</span>'+
+  '<div class="fm"><b>'+(dest?'→ '+esc(dest):esc(itemTitle(it)))+'</b><span class="m">'+esc(itemTitle(it))+(spd?' · '+spd:'')+(it.kind==='es'||(it.kind==='boat')?' · position estimée':'')+'</span></div>'+
+  '<div class="fa"><button type="button" data-act="fprev" title="Véhicule précédent de la ligne" aria-label="Véhicule précédent">'+IC.prev+'</button><button type="button" data-act="fnext" title="Véhicule suivant de la ligne" aria-label="Véhicule suivant">'+IC.next+'</button>'+
+  '<button type="button" data-act="cab" aria-pressed="'+follow.cab+'" title="'+(follow.cab?'Vue extérieure':'Vue cabine')+'" aria-label="'+(follow.cab?'Vue extérieure':'Vue cabine')+'">'+IC.cab+'</button><button type="button" data-act="unfollow" title="Arrêter de suivre" aria-label="Arrêter de suivre">'+IC.x+'</button></div></div>';
+ const calls=it.j?it.j.calls:[],nx=calls.filter(c=>c.arr>t);
+ if(nx.length){
+  const done=calls.length-nx.length,pct=Math.round(done/Math.max(1,calls.length-1)*100);
+  h+='<div class="fnext"><span>Prochain arrêt : <b style="font-weight:700">'+esc(stops[nx[0].ref].name)+'</b></span><b>'+esc(minsTxt(nx[0].arr))+'</b></div>';
+  h+='<div class="fp" title="'+done+' arrêts desservis sur '+calls.length+'"><i style="width:'+Math.min(100,pct)+'%;background:'+col+'"></i></div>';
+  if(!follow.cab&&nx.length>1)h+='<ol>'+nx.slice(1,4).map(c=>'<li><span>'+esc(stops[c.ref].name)+'</span><span>'+esc(minsTxt(c.arr))+'</span></li>').join('')+'</ol>';
+ }
+ else if(it.kind==='bus'&&it.v.stop&&stops['bordeaux:StopPoint:BP:'+it.v.stop+':LOC'])h+='<div class="fnext"><span>Prochain arrêt : <b style="font-weight:700">'+esc(stops['bordeaux:StopPoint:BP:'+it.v.stop+':LOC'].name)+'</b></span></div>';
  fbar.innerHTML=h;
 }
 
@@ -1100,15 +1257,33 @@ function replayAdvance(dt){
  if(sl&&document.activeElement!==sl&&hist.length>1){const a=hist[0].t,b=hist[hist.length-1].t;sl.value=Math.round((replay.t-a)/Math.max(1,b-a)*1000)}
 }
 
+// --- Panneau / tiroir mobile
+const panel=document.getElementById('panel');
+const isMobile=()=>innerWidth<=600;
+let sheetSnap='peek';
+function snapH(s){
+ if(s==='full')return Math.round(innerHeight-64);
+ if(s==='half')return Math.round(innerHeight*.52);
+ const tb=panel.querySelector('.tabs');return Math.round(tb.offsetTop+tb.offsetHeight+12);
+}
+function setSnap(s){
+ sheetSnap=s;
+ if(!isMobile()){document.documentElement.style.removeProperty('--sh');return}
+ document.documentElement.style.setProperty('--sh',snapH(s)+'px');
+}
+
 // --- Onglets du panneau
 let tab=null;const sheet=document.getElementById('sheet');
+const TAB_NAMES={trafic:'Info trafic',near:'Autour de moi',trip:'Trajet direct',stats:'Statistiques en direct',replay:'Rejouer'};
 function renderSheet(){
- sheet.hidden=!tab;
+ sheet.hidden=!tab;panel.classList.toggle('tabopen',!!tab);
+ if(tab&&sheetSnap==='peek'&&isMobile())setSnap('half');
  document.querySelectorAll('.tabs [data-tab]').forEach(b=>b.setAttribute('aria-selected',String(b.dataset.tab===tab)));
  if(!tab){sheet.dataset.built='';return}
- if(tab==='trip'){if(sheet.dataset.built!=='trip'){sheet.innerHTML=tripHtml();sheet.dataset.built='trip'}updateTrip();return}
+ const shd='<div class="shd"><b>'+TAB_NAMES[tab]+'</b><button type="button" class="ibtn" data-act="tclose" aria-label="Fermer l\'onglet" style="width:30px;height:30px">×</button></div>';
+ if(tab==='trip'){if(sheet.dataset.built!=='trip'){sheet.innerHTML=shd+tripHtml();sheet.dataset.built='trip'}updateTrip();return}
  sheet.dataset.built='';
- sheet.innerHTML=tab==='trafic'?alertsHtml():tab==='near'?nearHtml():tab==='stats'?statsHtml():replayHtml();
+ sheet.innerHTML=shd+(tab==='trafic'?alertsHtml():tab==='near'?nearHtml():tab==='stats'?statsHtml():replayHtml());
 }
 document.querySelector('.tabs').addEventListener('click',e=>{
  const b=e.target.closest('[data-tab]');if(!b)return;
@@ -1124,6 +1299,7 @@ sheet.addEventListener('click',e=>{
  const af=e.target.closest('[data-af]');if(af){alertFilter=af.dataset.af;renderSheet();return}
  const nr=e.target.closest('[data-near]');if(nr){const x=nearList[+nr.dataset.near];if(x)openStop(x.g,true);return}
  const a=e.target.closest('[data-act]');if(!a)return;
+ if(a.dataset.act==='tclose'){tab=null;renderSheet();return}
  if(a.dataset.act==='locate')locateMe();
  else if(a.dataset.act==='rplay'){if(hist.length<2)return;if(!replay.on){replay.t=hist[0].t;setReplay(true)}else if(replay.t>=hist[hist.length-1].t)replay.t=hist[0].t;replay.playing=!replay.playing;renderSheet()}
  else if(a.dataset.act==='rlive')setReplay(false);
@@ -1137,6 +1313,8 @@ sheet.addEventListener('change',e=>{if(e.target.id==='rspeed')replay.speed=+e.ta
 document.addEventListener('click',e=>{
  const f=e.target.closest('[data-follow]');if(f){startFollow(f.dataset.follow);return}
  if(e.target.closest('[data-act="unfollow"]'))stopFollow();
+ if(e.target.closest('[data-act="fprev"]'))followStep(-1);
+ if(e.target.closest('[data-act="fnext"]'))followStep(1);
  if(e.target.closest('[data-act="cab"]')&&follow){follow.cab=!follow.cab;follow.ui=0;if(!follow.cab)map.easeTo({pitch:62,zoom:16.2,duration:800})}
  const k=e.target.closest('[data-kiosk]');if(k)openKiosk(stopGroups.get(k.dataset.kiosk));
 });
@@ -1289,11 +1467,40 @@ document.getElementById('cpark').addEventListener('click',e=>{
 });
 document.getElementById('theo').addEventListener('change',e=>{showTheo=e.target.checked;render()});
 const viewBtn=document.getElementById('view');
-viewBtn.addEventListener('click',()=>{const flat=map.getPitch()>5;map.easeTo({pitch:flat?0:HOME.pitch,bearing:flat?0:HOME.bearing,duration:900});viewBtn.textContent=flat?'Vue 3D':'Vue à plat'});
-map.on('pitchend',()=>{viewBtn.textContent=map.getPitch()>5?'Vue à plat':'Vue 3D'});
-document.getElementById('home').addEventListener('click',()=>{map.flyTo({...HOME,duration:1400});viewBtn.textContent='Vue à plat'});
-const panel=document.getElementById('panel'),tg=document.getElementById('toggle');
-tg.addEventListener('click',()=>{panel.classList.toggle('min');tg.textContent=panel.classList.contains('min')?'Détails':'Réduire'});
+function setViewBtn(){const flat=map.getPitch()<=5;viewBtn.textContent=flat?'3D':'2D';const l=flat?'Passer en vue 3D':'Passer en vue à plat';viewBtn.title=l;viewBtn.setAttribute('aria-label',l)}
+viewBtn.addEventListener('click',()=>{const flat=map.getPitch()>5;map.easeTo({pitch:flat?0:HOME.pitch,bearing:flat?0:HOME.bearing,duration:900})});
+map.on('pitchend',setViewBtn);
+document.getElementById('home').addEventListener('click',()=>{stopFollow();map.flyTo({...HOME,duration:1400})});
+// Panneau : repli sur ordinateur, tiroir à trois crans sur mobile (aperçu, moitié, plein écran)
+const tg=document.getElementById('toggle');
+tg.addEventListener('click',()=>{
+ if(isMobile()){setSnap(sheetSnap==='peek'?'half':'peek');return}
+ const m=panel.classList.toggle('min');tg.setAttribute('aria-expanded',String(!m));tg.title=m?'Déplier le panneau':'Replier le panneau';
+});
+{
+ let y0=0,h0=0,moved=false,on=false;
+ const down=e=>{if(!isMobile()||e.target.closest('button,input,select'))return;on=true;moved=false;y0=e.clientY;h0=panel.getBoundingClientRect().height;panel.classList.add('drag');e.currentTarget.setPointerCapture(e.pointerId)};
+ const move=e=>{if(!on)return;const dy=y0-e.clientY;if(Math.abs(dy)>4)moved=true;const hh=Math.max(snapH('peek'),Math.min(snapH('full'),h0+dy));document.documentElement.style.setProperty('--sh',hh+'px')};
+ const up=e=>{if(!on)return;on=false;panel.classList.remove('drag');
+  if(!moved){setSnap(sheetSnap==='peek'?'half':'peek');return}
+  const hh=panel.getBoundingClientRect().height,v=h0-hh;
+  const order=['peek','half','full'],ds=order.map(s=>Math.abs(snapH(s)-hh));let k=ds.indexOf(Math.min(...ds));
+  if(Math.abs(v)>40&&order[k]===sheetSnap)k=Math.max(0,Math.min(2,k+(v<0?1:-1)));
+  setSnap(order[k]);
+ };
+ for(const el of [document.getElementById('grab'),document.getElementById('phd')]){el.addEventListener('pointerdown',down);el.addEventListener('pointermove',move);el.addEventListener('pointerup',up);el.addEventListener('pointercancel',up)}
+}
+qIn.addEventListener('focus',()=>{if(isMobile())setSnap('full')});
+addEventListener('resize',()=>setSnap(sheetSnap));
+setSnap('peek');setViewBtn();
+// Menu Affichage
+const disp=document.getElementById('disp'),bdisp=document.getElementById('bdisp');
+function openDisp(on){disp.hidden=!on;bdisp.setAttribute('aria-expanded',String(on));
+ if(on&&!isMobile()){const r=bdisp.getBoundingClientRect();disp.style.top=Math.max(14,r.top)+'px';disp.style.right=(innerWidth-r.left+8)+'px'}else{disp.style.top='';disp.style.right=''}}
+bdisp.addEventListener('click',e=>{e.stopPropagation();openDisp(disp.hidden)});
+document.getElementById('dclose').addEventListener('click',()=>openDisp(false));
+document.addEventListener('pointerdown',e=>{if(!disp.hidden&&!disp.contains(e.target)&&!bdisp.contains(e.target))openDisp(false)});
+addEventListener('keydown',e=>{if(e.key==='Escape'&&!disp.hidden)openDisp(false)});
 for(const id of ['trams','trams-es','labels','bus','bus-labels']){
  map.on('click',id,e=>{e.preventDefault();const f=e.features&&e.features[0];if(f)openTram(f.properties.k)});
  map.on('mouseenter',id,()=>{map.getCanvas().style.cursor='pointer'});
@@ -1318,6 +1525,7 @@ map.on('style.load',()=>{
  for(const [id,d] of Object.entries(srcCache)){const s=map.getSource(id);if(s)s.setData(d)}
 });
 map.on('load',async()=>{
+ document.querySelectorAll('.maplibregl-compact-show').forEach(e=>e.classList.remove('maplibregl-compact-show'));
  st.textContent='Chargement des arrêts et des tracés…';
  try{await loadStatic()}catch(e){setStatus('Échec du chargement des arrêts : '+e.message);return}
  await tickLive();await tickGps();render();
